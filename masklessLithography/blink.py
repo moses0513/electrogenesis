@@ -1,5 +1,6 @@
 from machine import Pin, PWM
-import utime
+import utime4
+#
 
 # Assign pins
 pwma = PWM(Pin(0))
