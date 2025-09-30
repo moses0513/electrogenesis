@@ -1,6 +1,6 @@
 from machine import Pin, PWM
 import utime
-
+# i added a comment.
 # Assign pins
 pwma = PWM(Pin(0))
 AIN1 = Pin(1, Pin.OUT)
