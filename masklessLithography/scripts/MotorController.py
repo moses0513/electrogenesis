@@ -57,5 +57,5 @@ if __name__ == '__main__':
     motor3 = MotorController(stepGPIO=4, directionGPIO=5)
     
     motor1.rotateMotor(steps=200, forwards=False)
-    motor2.rotateMotor(steps=200, forwards=False)
-    motor3.rotateMotor(steps=200, forwards=False)
+    #motor2.rotateMotor(steps=200, forwards=False)
+    #motor3.rotateMotor(steps=200, forwards=False)
