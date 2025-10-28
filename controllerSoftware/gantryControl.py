@@ -2,6 +2,7 @@ import tkinter as tk
 from PIL import Image, ImageTk  # for logo display
 import serial
 import time
+import os
 
 # SERIAL SETUP
 # Change to your serial port (e.g., "COM3" on Windows or "/dev/ttyUSB0" on Pi)
@@ -29,11 +30,19 @@ title.pack(pady=10)
 
 # LOGO SECTION
 try:
-    logo_img = Image.open("egen25_logo.png")  # <-- your logo file name
-    logo_img = logo_img.resize((360, 171))  # resize if needed
+    # script_dir: directory where this .py lives (fallback to cwd if __file__ missing)
+    script_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+    image_path = os.path.join(script_dir, "egen25_logo.png")
+
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"{image_path} not found")
+
+    logo_img = Image.open(image_path)
+    logo_img = logo_img.resize((360, 171))
     logo_photo = ImageTk.PhotoImage(logo_img)
 
     logo_label = tk.Label(root, image=logo_photo, bg="#5E5E5E")
+    logo_label.image = logo_photo  # keep a reference
     logo_label.pack(pady=10)
 except Exception as e:
     print(f"Could not load logo ⚠️ : {e}")
