@@ -85,3 +85,6 @@ root.bind("<Prior>", lambda e: send_command("Z+50"))   # Page Up
 root.bind("<Next>", lambda e: send_command("Z-50"))    # Page Down
 
 root.mainloop() # Start the GUI event loop
+
+# To package with PyInstaller including the logo image, use:
+# python -m PyInstaller --add-data "egen25_logo.png;." gantryControl.py
