@@ -76,4 +76,12 @@ tk.Button(z_frame, text="Z+", width=10, height=2,
 tk.Button(z_frame, text="Z-", width=10, height=2,
           command=lambda: send_command("Z-50")).grid(row=0, column=1, padx=10, pady=5)
 
+# KEYBOARD SHORTCUTS
+root.bind("<Up>", lambda e: send_command("Y+100"))
+root.bind("<Down>", lambda e: send_command("Y-100"))
+root.bind("<Left>", lambda e: send_command("X-100"))
+root.bind("<Right>", lambda e: send_command("X+100"))
+root.bind("<Prior>", lambda e: send_command("Z+50"))   # Page Up
+root.bind("<Next>", lambda e: send_command("Z-50"))    # Page Down
+
 root.mainloop() # Start the GUI event loop
