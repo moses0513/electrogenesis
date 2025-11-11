@@ -3,17 +3,22 @@
 """
 TO-DO:
 
-_ Change SVG code to PNG code
+X Change SVG code to PNG code
 X Make SVGs update when new photo/assist files are selected from GUI
 X Make second window reflect preview window
 X Fix broken preview (happened right after adding DLP_preview_view to second display)
-X Prevent scrolling on second window
+_ Prevent scrolling on DLP window
 X Dialog box to confirm start or cancel
-_ Update aligment assist layers on second monitor 
+X Update aligment assist layers on second monitor 
 _ Add circle asset with adjustable dia, x-offset and y-offset
-_ Color filtering
-_ [Optional] Runtime dialog with stopwatch, goal
-_ Lock aspect ratio of photolithography preview
+X Color filtering
+_ Adjustable position of photo/align layers
+_ Runtime dialog with stopwatch, goal
+_ Fix config values not updating (images do not crop. use a different strategy for global vars? re-grab the config file?)
+_ Add a displayAlignmentImage() function that connects to the "Draw alignment image on wafer" checkbox
+
+Perhaps:
+_ Prevent dragging window into DLP or moving mouse onto it... Might get really technical
 
 """
 
@@ -45,7 +50,7 @@ from PyQt5.QtSvg import QGraphicsSvgItem
 from PyQt5.QtCore import Qt, QSize, QRectF
 from PyQt5.QtGui import QResizeEvent, QBrush, QColor
 
-images = os.listdir("svg_images")
+png_images = os.listdir("png_images")
 screens = QApplication.screens()
 
 class GraphicsView(QGraphicsView):
@@ -107,47 +112,40 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.photo_text_title = QLabel("Photolithography Settings")
         QLabel.setAlignment(self.photo_text_title, Qt.AlignCenter)
 
-        self.photo_text_file = QLabel(f'Image File: {config.PHOTO_FILE}')
+        self.photo_text_file = QLabel(f'Photolithography File: {config.PHOTO_FILE}')
         self.photo_cbox = QComboBox()
-        self.photo_cbox.addItems(images)
-        try:
-            # By default, select the file in config.py
-            self.photo_cbox.setCurrentIndex(images.index("25 EGen Logo.svg"))
-        except:
-            self.photo_cbox.setCurrentIndex(0)
+        self.photo_cbox.addItems(png_images)
+        self.photo_cbox.setCurrentIndex(1)
 
-        self.photo_text_UV = QLabel(f'UV LED Brightness: {config.DEFAULT_BRIGHTNESS_UV}')
+        self.photo_text_UV = QLabel(f'UV LED Brightness: {config.BRIGHTNESS_UV}')
         self.photo_slider_UV = QSlider()
         self.photo_slider_UV.setOrientation(1)
         self.photo_slider_UV.setMinimum(0)
         self.photo_slider_UV.setMaximum(255)
-        self.photo_slider_UV.setValue(config.DEFAULT_BRIGHTNESS_UV)
+        self.photo_slider_UV.setValue(config.BRIGHTNESS_UV)
 
         # Alignment layer settings (can output to Red or Green LEDs)
-        self.assist_text_title = QLabel("Alignment Assist:")
+        self.assist_text_title = QLabel("Alignment Settings")
+        QLabel.setAlignment(self.assist_text_title, Qt.AlignCenter)
         self.assist_text_file = QLabel(f'Image File: {config.PHOTO_FILE}')
         self.assist_cbox = QComboBox()
-        self.assist_cbox.addItems(images)
-        try:
-            # By default, select the file in config.py
-            self.assist_cbox.setCurrentIndex(images.index("25 EGen Logo.svg"))
-        except:
-            self.assist_cbox.setCurrentIndex(0)
+        self.assist_cbox.addItems(png_images)
+        self.assist_cbox.setCurrentIndex(1)
 
         # Red and Green LED brightness sliders
-        self.assist_text_RED = QLabel(f'Red LED Brightness: {config.DEFAULT_BRIGHTNESS_RED}')
+        self.assist_text_RED = QLabel(f'Red LED Brightness: {config.BRIGHTNESS_RED}')
         self.assist_slider_RED = QSlider()
         self.assist_slider_RED.setOrientation(1)
         self.assist_slider_RED.setMinimum(0)
         self.assist_slider_RED.setMaximum(255)
-        self.assist_slider_RED.setValue(config.DEFAULT_BRIGHTNESS_RED)
+        self.assist_slider_RED.setValue(config.BRIGHTNESS_RED)
 
-        self.assist_text_GREEN = QLabel(f'Green LED Brightness: {config.DEFAULT_BRIGHTNESS_GREEN}')
+        self.assist_text_GREEN = QLabel(f'Green LED Brightness: {config.BRIGHTNESS_GREEN}')
         self.assist_slider_GREEN = QSlider()
         self.assist_slider_GREEN.setOrientation(1)
         self.assist_slider_GREEN.setMinimum(0)
         self.assist_slider_GREEN.setMaximum(255)
-        self.assist_slider_GREEN.setValue(config.DEFAULT_BRIGHTNESS_GREEN)
+        self.assist_slider_GREEN.setValue(config.BRIGHTNESS_GREEN)
 
         self.spacer = QSpacerItem(40, 40)
 
@@ -175,15 +173,8 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         self.DLP_preview_scene = QGraphicsScene()
         self.DLP_preview_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Complete blackout background
-        
-        self.photo_svg = QGraphicsSvgItem(config.PHOTO_FILE)
-        self.align_svg = QGraphicsSvgItem(config.ALIGNMENT_FILE)
-        # self.DLP_preview_scene.addItem(self.photo_svg)
-        # self.DLP_preview_scene.addItem(self.align_svg)
-        self.recolored_blend = image_processing.add_images(self.photo_svg, self.align_svg)
-        self.DLP_preview_scene.addItem(self.recolored_blend)
-        self.photo_svg.setZValue(2)
-        self.align_svg.setZValue(1)
+        self.photo_and_align_graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE) # Return a combined RGB image from photo and align layers
+        self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
         self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
 
         
@@ -197,7 +188,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Exposure time spinbox
         self.exposure_spinbox = QDoubleSpinBox()
         self.exposure_spinbox.setRange(0, 30)
-        self.exposure_spinbox.setValue(config.DEFAULT_EXPOSURE_TIME)
+        self.exposure_spinbox.setValue(config.EXPOSURE_TIME)
         self.exposure_spinbox.suffix = " sec"
         self.exposure_spinbox.setDecimals(2)
 
@@ -208,7 +199,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_START.setStyleSheet("background-color: green; color: white; font-weight: bold;")
 
         # Alignment SVG layer
-        self.alignment_svg_checkbox = QCheckBox("Draw alignment SVG on wafer")
+        self.alignment_svg_checkbox = QCheckBox("Draw alignment image on wafer")
 
         # Alignment circle layer
         self.alignment_circle_checkbox = QCheckBox("Draw alignment circle on wafer")
@@ -239,10 +230,6 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         # Add widgets to right layout
         self.layout_R.addWidget(self.preview_text_title)
-        # self.layout_svg_preview.addWidget(self.preview_svg_outline)
-        # self.layout_svg_preview.addWidget(self.preview_svg)
-        # self.layout_svg_preview.setCurrentWidget(self.preview_svg)
-        # self.layout_R.addLayout(self.layout_svg_preview)
         self.layout_R.addWidget(self.DLP_preview_view)
         self.layout_R.addWidget(self.resolution_label)
         self.layout_exposure.addWidget(self.exposure_label)
@@ -265,40 +252,48 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         ############## Button Bindings ##############
         # Combo boxes
-        self.photo_cbox.currentIndexChanged.connect(lambda: self.update_svg_file("PHOTO"))
-        self.assist_cbox.currentIndexChanged.connect(lambda: self.update_svg_file("ALIGN"))
+        self.photo_cbox.currentIndexChanged.connect(self.update_images)
+        self.assist_cbox.currentIndexChanged.connect(self.update_images)
         # Sliders
-        self.photo_slider_UV.valueChanged.connect(lambda: self.photo_text_UV.setText(f'UV LED Brightness: {self.photo_slider_UV.value()}'))
+        self.photo_slider_UV.sliderReleased.connect(self.update_UV_value) # Update images when released
+        self.assist_slider_RED.sliderReleased.connect(self.update_RED_value)
+        self.assist_slider_GREEN.sliderReleased.connect(self.update_GREEN_value)
+        self.photo_slider_UV.valueChanged.connect(lambda: self.photo_text_UV.setText(f'UV LED Brightness: {self.photo_slider_UV.value()}')) # Update text while moving
         self.assist_slider_RED.valueChanged.connect(lambda: self.assist_text_RED.setText(f'Red LED Brightness: {self.assist_slider_RED.value()}'))
-        self.assist_slider_GREEN.valueChanged.connect(lambda: self.assist_text_GREEN.setText(f'Green LED Brightness: {self.assist_slider_GREEN.value()}'))
+        self.assist_slider_GREEN.valueChanged.connect(lambda: self.assist_text_GREEN.setText(f'Green LED Brightness: {self.assist_slider_RED.value()}'))
         # Start/stop buttons
         self.exposure_START.clicked.connect(self.confirmStart)
+        self.exposure_STOP.clicked.connect(self.stopPhotolithography)
 
-    def update_svg_file(self, whichBox):
-        if whichBox == "PHOTO":
-            selected_file = self.photo_cbox.currentText()
-            config.PHOTO_FILE = os.path.join("svg_images", selected_file)
-            self.photo_text_file.setText(f'Image File: {config.PHOTO_FILE}')
-            self.DLP_preview_scene.removeItem(self.photo_svg)
-            self.photo_svg = QGraphicsSvgItem(config.PHOTO_FILE)
-            self.DLP_preview_scene.addItem(self.photo_svg)
-            self.photo_svg.setZValue(2)
-            
-        if whichBox == "ALIGN":
-            selected_file = self.assist_cbox.currentText()
-            config.ALIGNMENT_FILE = os.path.join("svg_images", selected_file)
-            self.assist_text_file.setText(f'Image File: {config.ALIGNMENT_FILE}')
-            self.DLP_preview_scene.removeItem(self.align_svg)
-            self.align_svg = QGraphicsSvgItem(config.ALIGNMENT_FILE)
-            self.DLP_preview_scene.addItem(self.align_svg)
-            self.align_svg.setZValue(1)
+    def update_UV_value(self):
+        value = self.photo_slider_UV.value()
+        config.BRIGHTNESS_UV = value
+        self.update_images()
 
-        # Apply a colorize effect
-        photo_colorize_effect = QGraphicsColorizeEffect()
-        photo_colorize_effect.setColor(QColor(0, 0, 255)) # Complete blue filter on all photo layers.
-        photo_colorize_effect.setStrength(1)
-        self.photo_svg.setGraphicsEffect(photo_colorize_effect)
-        self.align_svg.setGraphicsEffect(photo_colorize_effect)
+    def update_RED_value(self):
+        value = self.assist_slider_RED.value()
+        config.BRIGHTNESS_RED = value
+        self.update_images()
+
+    def update_GREEN_value(self):
+        value = self.assist_slider_GREEN.value()
+        config.BRIGHTNESS_GREEN = value
+        self.update_images()
+
+    def update_images(self):
+        # Update Photo image
+        selected_file = self.photo_cbox.currentText()
+        config.PHOTO_FILE = os.path.join("png_images", selected_file)
+        self.photo_text_file.setText(f'Image File: {config.PHOTO_FILE}')
+        # Update Align image
+        selected_file = self.assist_cbox.currentText()
+        config.ALIGNMENT_FILE = os.path.join("png_images", selected_file)
+        self.assist_text_file.setText(f'Image File: {config.ALIGNMENT_FILE}')
+
+        # Remove the old pixmap item, add a newly calculated one
+        self.DLP_preview_scene.removeItem(self.photo_and_align_graphics_item)
+        self.photo_and_align_graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE)
+        self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
     
     def confirmStart(self):
         warning = QMessageBox()
@@ -324,7 +319,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         button = warning.exec()
 
         if button == confirmButton:
-            startPhotoLithography()
+            self.startPhotolithography()
         if button == cancelButton:
             print("Canceled.")
 
@@ -336,6 +331,19 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # NOTE: The default splash of the DLP MUST be a black screen, or something with NO blue.
         #       Otherwise, it will emit UV light when the splash screen (or "No-signal" screen) takes over.
 
+    def startPhotolithography(self):
+        print("Starting UV exposure...")
+        lithoWindow.DLP_scene = self.DLP_preview_scene
+        # lithoWindow.DLP_scene = QGraphicsScene()
+        # lithoWindow.DLP_scene.addItem(self.photo_and_align_graphics_item)
+        lithoWindow.DLP_view = QGraphicsView(lithoWindow.DLP_scene, self)
+        lithoWindow.DLP_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        lithoWindow.DLP_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        lithoWindow.setCentralWidget(lithoWindow.DLP_view)
+
+    def stopPhotolithography(self):
+        print("STOPPING UV exposure.")
+        lithoWindow.blackout()
 
 class DLP():
     def __init__(self):
@@ -343,6 +351,7 @@ class DLP():
             self.screen_geometry = QApplication.screens()[1].geometry()
             self.width = self.screen_geometry.width()
             self.height = self.screen_geometry.height()
+            print(self.screen_geometry)
         except IndexError:
             self.screen_geometry = QApplication.screens()[0].geometry()
             self.width = self.screen_geometry.width()
@@ -358,34 +367,31 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
 
         # Attempt to move image to second display
         try:
-            
             self.setGeometry(DLP.screen_geometry)
             self.showFullScreen()
             if DLP.width < config.LITHO_SIZE_PX_X or DLP.height < config.LITHO_SIZE_PX_Y:
                 print("Warning: Second display resolution is smaller than lithography image size.")
-                print("Image cropped to:")
+                print("Cropping images to:")
                 # Set to a square ratio based on max screen height
                 config.LITHO_SIZE_PX_Y = DLP.height
-                config.LITHO_SIZE_PX_X = DLP.height
+                # config.LITHO_SIZE_PX_X = DLP.height
                 print(f"\tWidth: {config.LITHO_SIZE_PX_X} px")
                 print(f"\tHeight: {config.LITHO_SIZE_PX_Y} px")
 
         except Exception as e:
             print(e)
+        
+        # Finish setting up the window by blacking everything out.
+        self.blackout()
 
-        self.DLP_view = QGraphicsView(parentWindow.DLP_preview_scene, self)
-        self.DLP_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.DLP_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    def blackout(self):
         self.blackout_scene = QGraphicsScene()
-        self.blackout_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Complete blackout
+        self.blackout_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Total darkness *evil laugh*
         self.blackout_view = QGraphicsView(self.blackout_scene)
         self.blackout_view.setAutoFillBackground(True)
         self.blackout_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.blackout_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setCentralWidget(self.blackout_view)
-
-def startPhotolithography():
-    print("Starting UV exposure...")
 
 
 app = QApplication(sys.argv)
@@ -396,5 +402,7 @@ mainWindow.show()
 
 lithoWindow = LithoWindow(mainWindow)
 lithoWindow.show()
+
+# Note after doing all this: There's probably a better way to do all this. (P_P)
 
 app.exec()
