@@ -1,3 +1,6 @@
+# For GUI layout testing purposes:
+# Makes a simple color filled rectangle widget.
+
 from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtWidgets import QWidget
 

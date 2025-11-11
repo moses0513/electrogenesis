@@ -3,25 +3,29 @@
 """
 TO-DO:
 
-_ Lock aspect ratio of photolithography preview
+_ Change SVG code to PNG code
 X Make SVGs update when new photo/assist files are selected from GUI
 X Make second window reflect preview window
-_ Prevent scrolling on second window
-_ Dialog box to confirm start or cancel
+X Fix broken preview (happened right after adding DLP_preview_view to second display)
+X Prevent scrolling on second window
+X Dialog box to confirm start or cancel
 _ Update aligment assist layers on second monitor 
 _ Add circle asset with adjustable dia, x-offset and y-offset
 _ Color filtering
 _ [Optional] Runtime dialog with stopwatch, goal
+_ Lock aspect ratio of photolithography preview
 
 """
 
 import sys, os
 import config
+import image_processing
 from PyQt5.QtWidgets import (
     QApplication, 
     QMainWindow, 
     QWidget, 
     QGraphicsScene,
+    QGraphicsColorizeEffect,
     QGraphicsView,
     QVBoxLayout, 
     QHBoxLayout,
@@ -34,17 +38,15 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QPushButton,
     QSpacerItem,
+    QMessageBox,
     QSizePolicy
 )
-from PyQt5.QtSvg import QSvgWidget, QGraphicsSvgItem
-from PyQt5.QtCore import Qt, QSize, QRectF, QPoint
-from PyQt5.QtGui import QResizeEvent
-from layout_colorwidget import Color
+from PyQt5.QtSvg import QGraphicsSvgItem
+from PyQt5.QtCore import Qt, QSize, QRectF
+from PyQt5.QtGui import QResizeEvent, QBrush, QColor
 
 images = os.listdir("svg_images")
 screens = QApplication.screens()
-# DLP_SCREEN_WIDTH = screens[2].geometry().width() if len(screens) > 1 else screens[1].geometry().width()
-# DLP_SCREEN_HEIGHT = screens[2].geometry().height() if len(screens) > 1 else screens[1].geometry().height()
 
 class GraphicsView(QGraphicsView):
     def __init__(self, scene, parent):
@@ -170,17 +172,24 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Make a miniature scene that replicates the DLP output
         self.preview_text_title = QLabel("Photolithography Preview:")
         QLabel.setAlignment(self.preview_text_title, Qt.AlignCenter)
+
         self.DLP_preview_scene = QGraphicsScene()
-        self.photo_svg = QGraphicsSvgItem("svg_images\\25 EGen Logo.svg")
-        self.align_svg = QGraphicsSvgItem("svg_images\\25 EGen Logo.svg")
-        self.DLP_preview_scene.addItem(self.photo_svg)
-        self.DLP_preview_scene.addItem(self.align_svg)
+        self.DLP_preview_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Complete blackout background
+        
+        self.photo_svg = QGraphicsSvgItem(config.PHOTO_FILE)
+        self.align_svg = QGraphicsSvgItem(config.ALIGNMENT_FILE)
+        # self.DLP_preview_scene.addItem(self.photo_svg)
+        # self.DLP_preview_scene.addItem(self.align_svg)
+        self.recolored_blend = image_processing.add_images(self.photo_svg, self.align_svg)
+        self.DLP_preview_scene.addItem(self.recolored_blend)
         self.photo_svg.setZValue(2)
         self.align_svg.setZValue(1)
         self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
-        # self.DLP_preview_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        # self.DLP_preview_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
         
+
+        # Output resolution:
+        self.resolution_label = QLabel(f"Output resolution: {DLP.width} x {DLP.height}")        
         
         # Exposure time
         self.exposure_label = QLabel("Exposure Time:")
@@ -235,6 +244,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # self.layout_svg_preview.setCurrentWidget(self.preview_svg)
         # self.layout_R.addLayout(self.layout_svg_preview)
         self.layout_R.addWidget(self.DLP_preview_view)
+        self.layout_R.addWidget(self.resolution_label)
         self.layout_exposure.addWidget(self.exposure_label)
         self.layout_exposure.addWidget(self.exposure_spinbox)
         self.layout_exposure.addWidget(self.exposure_STOP)
@@ -261,6 +271,8 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.photo_slider_UV.valueChanged.connect(lambda: self.photo_text_UV.setText(f'UV LED Brightness: {self.photo_slider_UV.value()}'))
         self.assist_slider_RED.valueChanged.connect(lambda: self.assist_text_RED.setText(f'Red LED Brightness: {self.assist_slider_RED.value()}'))
         self.assist_slider_GREEN.valueChanged.connect(lambda: self.assist_text_GREEN.setText(f'Green LED Brightness: {self.assist_slider_GREEN.value()}'))
+        # Start/stop buttons
+        self.exposure_START.clicked.connect(self.confirmStart)
 
     def update_svg_file(self, whichBox):
         if whichBox == "PHOTO":
@@ -271,7 +283,6 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
             self.photo_svg = QGraphicsSvgItem(config.PHOTO_FILE)
             self.DLP_preview_scene.addItem(self.photo_svg)
             self.photo_svg.setZValue(2)
-            print("Updated photo")
             
         if whichBox == "ALIGN":
             selected_file = self.assist_cbox.currentText()
@@ -281,20 +292,50 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
             self.align_svg = QGraphicsSvgItem(config.ALIGNMENT_FILE)
             self.DLP_preview_scene.addItem(self.align_svg)
             self.align_svg.setZValue(1)
-            print("Updated align")
 
-        # selected_file = self.photo_cbox.currentText()
-        # config.PHOTO_FILE = os.path.join("svg_images", selected_file)
-        # self.photo_text_file.setText(f'Image File: {config.PHOTO_FILE}')
-        # # self.preview_svg.load(config.PHOTO_FILE)
-        # self.DLP_preview_scene.removeItem(self.photo_svg)
-        # self.photo_svg = QGraphicsSvgItem(config.PHOTO_FILE)
-        # self.DLP_preview_scene.addItem(self.photo_svg)
-        
+        # Apply a colorize effect
+        photo_colorize_effect = QGraphicsColorizeEffect()
+        photo_colorize_effect.setColor(QColor(0, 0, 255)) # Complete blue filter on all photo layers.
+        photo_colorize_effect.setStrength(1)
+        self.photo_svg.setGraphicsEffect(photo_colorize_effect)
+        self.align_svg.setGraphicsEffect(photo_colorize_effect)
     
+    def confirmStart(self):
+        warning = QMessageBox()
+        warning_text = f"""
+            CAUTION! UV LEDs are about to turn on. 
+            Ensure the working area is clear and 
+            eye protection is being used.
+
+            \nSelected Exposure Time: {self.exposure_spinbox.value()} seconds
+            \nUV Brightness: {self.photo_slider_UV.value()} ({self.photo_slider_UV.value()*100//255}%)
+
+            \nCONFIRM UV EXPOSURE:
+        """
+        warning.setText(warning_text)
+        icon = QMessageBox.Icon.Warning
+        warning.setIcon(icon)
+        warning.setWindowTitle("CONFIRM UV EXPOSURE")
+        confirmButton = QMessageBox.StandardButton.Yes
+        cancelButton = QMessageBox.StandardButton.Cancel
+        warning.setStandardButtons(confirmButton | cancelButton)
+        warning.setDefaultButton(cancelButton)
+        warning.button
+        button = warning.exec()
+
+        if button == confirmButton:
+            startPhotoLithography()
+        if button == cancelButton:
+            print("Canceled.")
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        
+
+    def closeEvent(self, a0):
+        exit() # Close the whole program if the main window is closed.
+        # NOTE: The default splash of the DLP MUST be a black screen, or something with NO blue.
+        #       Otherwise, it will emit UV light when the splash screen (or "No-signal" screen) takes over.
+
 
 class DLP():
     def __init__(self):
@@ -332,14 +373,20 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
         except Exception as e:
             print(e)
 
-        # Layout the SVG image smack in the center of the screen
-        # self.layout = QGridLayout()
-        self.svg = QSvgWidget("svg_images\\25 EGen Logo.svg")
-        # self.layout.addWidget(self.svg, 0, 0)
-        self.svg.setFixedSize(config.LITHO_SIZE_PX_X, config.LITHO_SIZE_PX_Y)
+        self.DLP_view = QGraphicsView(parentWindow.DLP_preview_scene, self)
+        self.DLP_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.DLP_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.blackout_scene = QGraphicsScene()
+        self.blackout_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Complete blackout
+        self.blackout_view = QGraphicsView(self.blackout_scene)
+        self.blackout_view.setAutoFillBackground(True)
+        self.blackout_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.blackout_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setCentralWidget(self.blackout_view)
 
-        self.setCentralWidget(parentWindow.DLP_preview_view)
-        
+def startPhotolithography():
+    print("Starting UV exposure...")
+
 
 app = QApplication(sys.argv)
 
