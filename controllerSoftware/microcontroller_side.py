@@ -1,4 +1,5 @@
 from machine import Pin
+import select
 import time
 import sys
 
