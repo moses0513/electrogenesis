@@ -7,7 +7,7 @@ import os
 # SERIAL SETUP
 # Change to your serial port (e.g., "COM3" on Windows or "/dev/ttyUSB0" on Pi)
 try:
-    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1) # adjust as needed
+    ser = serial.Serial('COM6', 9600, timeout=1) # adjust as needed
     time.sleep(2)  # wait for connection
 except:
     ser = None
