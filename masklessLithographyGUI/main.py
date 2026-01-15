@@ -1,4 +1,15 @@
-# SVG to HDMI output test
+# Main GUI Window
+# This file runs the main window for the maskless photolithography process.
+# With the GUI, you can do the following:
+# - View live microscopic camera footage of the stage (the wafer on the vacuum chuck)
+# - Move the stage (aka the gantry) in X, Y, and Z directions, and return to the datum
+# - Select the image to be exposed onto the wafer
+# - Adjust brightness of the UV LEDs
+# - Adjust brightness of the red/green LEDs, which are used to align the wafer prior to exposing
+# - Preview the files and exposed areas that will be on the wafer
+# - Set exposure time
+# - Start and stop the exposure, with a UV safety warning that must be confirmed before starting.
+
 
 """
 TO-DO:
