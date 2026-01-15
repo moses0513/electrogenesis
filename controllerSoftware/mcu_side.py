@@ -1,33 +1,62 @@
 # mcu_side.py
-import RPi.GPIO as GPIO
 import time
 
-GPIO.setmode(GPIO.BCM)
+# -----------------------------
+# PLATFORM DETECTION
+# -----------------------------
+try:
+    import RPi.GPIO as GPIO
+    ON_PI = True
+except ImportError:
+    GPIO = None
+    ON_PI = False
 
-# Example GPIO pins (change to match wiring)
-X_PIN = 17
-Y_PIN = 27
-Z_PIN = 22
-
-GPIO.setup(X_PIN, GPIO.OUT)
-GPIO.setup(Y_PIN, GPIO.OUT)
-GPIO.setup(Z_PIN, GPIO.OUT)
-
-STEP_DELAY = 0.0005  # 500 µs
-
-AXIS_PINS = {
-    'X': X_PIN,
-    'Y': Y_PIN,
-    'Z': Z_PIN
+# -----------------------------
+# GPIO PIN DEFINITIONS
+# CHANGE THESE TO MATCH WIRING
+# -----------------------------
+AXES = {
+    'X': {'STEP': 17, 'DIR': 16},
+    'Y': {'STEP': 27, 'DIR': 26},
+    'Z': {'STEP': 22, 'DIR': 21},
 }
 
-def move_motor(axis, steps):
-    pin = AXIS_PINS[axis]
+STEP_DELAY = 0.0005  # seconds
+
+# -----------------------------
+# GPIO SETUP (Pi only)
+# -----------------------------
+if ON_PI:
+    GPIO.setmode(GPIO.BCM)
+    for axis in AXES.values():
+        GPIO.setup(axis['STEP'], GPIO.OUT)
+        GPIO.setup(axis['DIR'], GPIO.OUT)
+
+# -----------------------------
+# MOTOR CONTROL
+# -----------------------------
+def move_motor(axis, direction, steps):
+    """
+    axis: 'X', 'Y', or 'Z'
+    direction: '+' or '-'
+    steps: int
+    """
+
+    if not ON_PI:
+        print(f"[SIM] {axis}{direction} moving {steps} steps")
+        return
+
+    # Set direction
+    GPIO.output(AXES[axis]['DIR'], GPIO.HIGH if direction == '+' else GPIO.LOW)
+
+    step_pin = AXES[axis]['STEP']
+
     for _ in range(steps):
-        GPIO.output(pin, GPIO.HIGH)
+        GPIO.output(step_pin, GPIO.HIGH)
         time.sleep(STEP_DELAY)
-        GPIO.output(pin, GPIO.LOW)
+        GPIO.output(step_pin, GPIO.LOW)
         time.sleep(STEP_DELAY)
 
 def cleanup():
-    GPIO.cleanup()
+    if ON_PI:
+        GPIO.cleanup()

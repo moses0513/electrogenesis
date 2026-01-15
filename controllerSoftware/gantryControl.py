@@ -1,23 +1,21 @@
 import tkinter as tk
 from PIL import Image, ImageTk  # for logo display
-import serial
-import time
+from mcu_side import move_motor
 import os
 
-# SERIAL SETUP
-# Change to your serial port (e.g., "COM3" on Windows or "/dev/ttyUSB0" on Pi)
-try:
-    ser = serial.Serial('COM6', 9600, timeout=1) # adjust as needed
-    time.sleep(2)  # wait for connection
-except:
-    ser = None
-    print(" No serial connection found ⚠️  . Running in GUI-only mode.")
-
 # COMMAND FUNCTION
-def send_command(command): # send command to microcontroller
-    print(f"Sending: {command}")
-    if ser:
-        ser.write((command + '\n').encode())
+def moveMOTOR(command):
+    print(f"Command: {command}")
+
+    if command == "STOP":
+        # Placeholder for future stop / estop logic
+        return
+
+    axis = command[0]        # 'X', 'Y', 'Z'
+    direction = command[1]   # '+' or '-'
+    steps = int(command[2:])
+
+    move_motor(axis, direction, steps)
 
 # GUI SETUP
 root = tk.Tk() # Main application window
@@ -53,36 +51,35 @@ frame.pack(pady=20) # Padding around frame
 
 # Row 1: Y+
 tk.Button(frame, text="↑ Y+", width=10, height=2,
-          command=lambda: send_command("Y+100")).grid(row=0, column=1, padx=5, pady=5)
+          command=lambda: moveMOTOR("Y+100")).grid(row=0, column=1, padx=5, pady=5)
 
 # Row 2: X-, stop, X+
 tk.Button(frame, text="← X-", width=10, height=2,
-          command=lambda: send_command("X-100")).grid(row=1, column=0, padx=5, pady=5)
+          command=lambda: moveMOTOR("X-100")).grid(row=1, column=0, padx=5, pady=5)
 tk.Button(frame, text="STOP", width=10, height=2, bg="red",
-          command=lambda: send_command("STOP")).grid(row=1, column=1, padx=5, pady=5)
+          command=lambda: moveMOTOR("STOP")).grid(row=1, column=1, padx=5, pady=5)
 tk.Button(frame, text="→ X+", width=10, height=2,
-          command=lambda: send_command("X+100")).grid(row=1, column=2, padx=5, pady=5)
-
+          command=lambda: moveMOTOR("X+100")).grid(row=1, column=2, padx=5, pady=5)
 # Row 3: Y-
 tk.Button(frame, text="↓ Y-", width=10, height=2,
-          command=lambda: send_command("Y-100")).grid(row=2, column=1, padx=5, pady=5)
+          command=lambda: moveMOTOR("Y-100")).grid(row=2, column=1, padx=5, pady=5)
 
 # Z CONTROL
 z_frame = tk.LabelFrame(root, text="Z Axis", fg="white", bg="#5E5E5E", labelanchor="n", padx=10, pady=10)
 z_frame.pack(pady=10)
 
 tk.Button(z_frame, text="Z+", width=10, height=2,
-          command=lambda: send_command("Z+50")).grid(row=0, column=0, padx=10, pady=5)
+          command=lambda: moveMOTOR("Z+50")).grid(row=0, column=0, padx=10, pady=5)
 tk.Button(z_frame, text="Z-", width=10, height=2,
-          command=lambda: send_command("Z-50")).grid(row=0, column=1, padx=10, pady=5)
+          command=lambda: moveMOTOR("Z-50")).grid(row=0, column=1, padx=10, pady=5)
 
 # KEYBOARD SHORTCUTS
-root.bind("<Up>", lambda e: send_command("Y+100"))
-root.bind("<Down>", lambda e: send_command("Y-100"))
-root.bind("<Left>", lambda e: send_command("X-100"))
-root.bind("<Right>", lambda e: send_command("X+100"))
-root.bind("<Prior>", lambda e: send_command("Z+50"))   # Page Up
-root.bind("<Next>", lambda e: send_command("Z-50"))    # Page Down
+root.bind("<Up>", lambda e: moveMOTOR("Y+100"))
+root.bind("<Down>", lambda e: moveMOTOR("Y-100"))
+root.bind("<Left>", lambda e: moveMOTOR("X-100"))
+root.bind("<Right>", lambda e: moveMOTOR("X+100"))
+root.bind("<Prior>", lambda e: moveMOTOR("Z+50"))   # Page Up
+root.bind("<Next>", lambda e: moveMOTOR("Z-50"))    # Page Down
 
 root.mainloop() # Start the GUI event loop
 
