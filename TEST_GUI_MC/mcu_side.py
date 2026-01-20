@@ -111,20 +111,6 @@ def home_axis(axis):
     # TODO: Implement actual homing with limit switches
     # This is a placeholder that you'll need to customize based on your hardware
     
-    # Example logic (commented out - customize for your setup):
-    # 1. Move slowly toward home until limit switch triggers
-    # home_direction = '-'  # Usually home in negative direction
-    # while not limit_switch_triggered(axis):
-    #     move_motor(axis, home_direction, 10)  # Move in small increments
-    #     if E_STOP_ACTIVE:
-    #         return None
-    # 
-    # 2. Back off slightly from limit switch
-    # move_motor(axis, '+', 50)  # Back off 50 steps
-    # 
-    # 3. Return homed position
-    # return 0
-    
     print(f"[HOMING] {axis} axis homing complete")
     return 0
 

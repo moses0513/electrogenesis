@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPixmap, QFont
-from mcu_side_enhanced import move_motor
+from mcu_side import move_motor
 import os
 
 
