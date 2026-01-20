@@ -34,7 +34,7 @@ _ Prevent dragging window into DLP or moving mouse onto it... Might get really t
 """
 
 import sys, os
-import config, image_processing
+import config, image_processing, camera
 import gantryControl as gantry
 from PyQt5.QtWidgets import (
     QApplication, 
@@ -125,8 +125,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # LEFT
         # Camera feed and stage controller
         self.camera_label = QLabel("Live Camera Footage")
-        self.camera_scene = QGraphicsScene() # The scene prepares the canvas with images, colors, and graphics.
-        self.camera_viewport = QGraphicsView(self.camera_scene) # The viewport is what we actually see.
+        self.camFeed = camera.CameraFeed()
         self.stage_controller_label = QLabel("Stage Controller")
         self.stage_x_up = QPushButton("X+")
         self.stage_x_down = QPushButton("X-")
@@ -136,8 +135,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.stage_z_down = QPushButton("Z-")
         self.stage_datum = QPushButton("Datum")
 
-        self.layout_left.addWidget(self.camera_label)
-        self.layout_left.addWidget(self.camera_viewport)
+        self.layout_left.addWidget(self.camFeed)
         self.layout_left.addLayout(self.layout_stage_controller)
         self.layout_stage_controller.addWidget(self.stage_x_up, 1, 3)
         self.layout_stage_controller.addWidget(self.stage_x_down, 1, 0)
@@ -284,9 +282,9 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_right.addLayout(self.layout_circle)
 
         # Add the three main sections to the top-level layout
-        self.layout_top.addLayout(self.layout_left)
-        self.layout_top.addLayout(self.layout_middle)
-        self.layout_top.addLayout(self.layout_right)
+        self.layout_top.addLayout(self.layout_left, 1)
+        self.layout_top.addLayout(self.layout_middle, 1)
+        self.layout_top.addLayout(self.layout_right, 1)
         # self.layout_top.insertSpacerItem(1, QSizePolicy.Expanding)
 
         self.widget = QWidget()
