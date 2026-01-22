@@ -17,6 +17,10 @@ def moveMOTOR(command):
 
     move_motor(axis, direction, steps)
 
+"""
+
+
+
 # GUI SETUP
 root = tk.Tk() # Main application window
 root.title("Maskless Lithography Stage Controller") # Window title
@@ -85,3 +89,7 @@ root.mainloop() # Start the GUI event loop
 
 # To package with PyInstaller including the logo image, use:
 # python -m PyInstaller --add-data "egen25_logo.png;." gantryControl.py
+
+
+
+"""

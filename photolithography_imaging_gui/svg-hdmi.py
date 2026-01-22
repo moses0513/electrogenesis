@@ -1,15 +1,4 @@
-# Main GUI Window
-# This file runs the main window for the maskless photolithography process.
-# With the GUI, you can do the following:
-# - View live microscopic camera footage of the stage (the wafer on the vacuum chuck)
-# - Move the stage (aka the gantry) in X, Y, and Z directions, and return to the datum
-# - Select the image to be exposed onto the wafer
-# - Adjust brightness of the UV LEDs
-# - Adjust brightness of the red/green LEDs, which are used to align the wafer prior to exposing
-# - Preview the files and exposed areas that will be on the wafer
-# - Set exposure time
-# - Start and stop the exposure, with a UV safety warning that must be confirmed before starting.
-
+# SVG to HDMI output test
 
 """
 TO-DO:
@@ -34,8 +23,8 @@ _ Prevent dragging window into DLP or moving mouse onto it... Might get really t
 """
 
 import sys, os
-import config, image_processing, camera
-import gantryControl as gantry
+import config
+import image_processing
 from PyQt5.QtWidgets import (
     QApplication, 
     QMainWindow, 
@@ -45,7 +34,6 @@ from PyQt5.QtWidgets import (
     QGraphicsView,
     QVBoxLayout, 
     QHBoxLayout,
-    QGridLayout,
     QStackedLayout,
     QLabel,
     QComboBox,
@@ -106,15 +94,12 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
             print(e)
 
         # GUI is layed out as follows:
-        # Three sections, left, middle, and right
-        # Left: Live camera footage, stage controller
-        # Middle: Maskless lithography settings, Visual aligment assist settings
-        # Right: Maskless lithography preview, Toggle circle color selectors
+        # Two halves, left and right
+        # Left half: Photolithography settings, Aligment assist settings
+        # Right half: Photolithography preview, Toggle circle color selectors
         self.layout_top = QHBoxLayout()
-        self.layout_left = QVBoxLayout()
-        self.layout_middle = QVBoxLayout()
-        self.layout_right = QVBoxLayout()
-        self.layout_stage_controller = QGridLayout()
+        self.layout_L = QVBoxLayout()
+        self.layout_R = QVBoxLayout()
         self.layout_exposure = QHBoxLayout()
         self.layout_circle = QHBoxLayout()
         self.layout_circle_dia = QVBoxLayout()
@@ -122,31 +107,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_circle_offset_y = QVBoxLayout()
         self.layout_svg_preview = QStackedLayout()
 
-        # LEFT
-        # Camera feed and stage controller
-        self.camera_label = QLabel("Live Camera Footage")
-        self.camFeed = camera.CameraFeed()
-        self.stage_controller_label = QLabel("Stage Controller")
-        self.stage_x_up = QPushButton("X+")
-        self.stage_x_down = QPushButton("X-")
-        self.stage_y_up = QPushButton("Y+")
-        self.stage_y_down = QPushButton("Y-")
-        self.stage_z_up = QPushButton("Z+")
-        self.stage_z_down = QPushButton("Z-")
-        self.stage_datum = QPushButton("Datum")
-
-        self.layout_left.addWidget(self.camFeed)
-        self.layout_left.addLayout(self.layout_stage_controller)
-        self.layout_stage_controller.addWidget(self.stage_x_up, 1, 3)
-        self.layout_stage_controller.addWidget(self.stage_x_down, 1, 0)
-        self.layout_stage_controller.addWidget(self.stage_y_up, 0, 1,)
-        self.layout_stage_controller.addWidget(self.stage_y_down, 2, 1)
-        self.layout_stage_controller.addWidget(self.stage_z_up, 0, 3)
-        self.layout_stage_controller.addWidget(self.stage_z_down, 2, 3)
-        self.layout_stage_controller.addWidget(self.stage_datum, 1, 1)
-
-
-        # MIDDLE
+        # LEFT HALF
         # Photolithography settings (outputs to UV LEDs)
         self.photo_text_title = QLabel("Photolithography Settings")
         QLabel.setAlignment(self.photo_text_title, Qt.AlignCenter)
@@ -188,23 +149,23 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         self.spacer = QSpacerItem(40, 40)
 
-        # Add widgets to MIDDLE layout
-        self.layout_middle.addWidget(self.photo_text_title)
-        self.layout_middle.addSpacerItem(self.spacer)
-        self.layout_middle.addWidget(self.photo_text_file)
-        self.layout_middle.addWidget(self.photo_cbox)
-        self.layout_middle.addWidget(self.photo_text_UV)
-        self.layout_middle.addWidget(self.photo_slider_UV)
-        self.layout_middle.addWidget(self.assist_text_title)
-        self.layout_middle.addWidget(self.assist_text_file)
-        self.layout_middle.addWidget(self.assist_cbox)
-        self.layout_middle.addWidget(self.assist_text_RED)
-        self.layout_middle.addWidget(self.assist_slider_RED)
-        self.layout_middle.addWidget(self.assist_text_GREEN)
-        self.layout_middle.addWidget(self.assist_slider_GREEN)
-        self.layout_middle.addSpacerItem(self.spacer)
+        # Add widgets to left layout
+        self.layout_L.addWidget(self.photo_text_title)
+        self.layout_L.addSpacerItem(self.spacer)
+        self.layout_L.addWidget(self.photo_text_file)
+        self.layout_L.addWidget(self.photo_cbox)
+        self.layout_L.addWidget(self.photo_text_UV)
+        self.layout_L.addWidget(self.photo_slider_UV)
+        self.layout_L.addWidget(self.assist_text_title)
+        self.layout_L.addWidget(self.assist_text_file)
+        self.layout_L.addWidget(self.assist_cbox)
+        self.layout_L.addWidget(self.assist_text_RED)
+        self.layout_L.addWidget(self.assist_slider_RED)
+        self.layout_L.addWidget(self.assist_text_GREEN)
+        self.layout_L.addWidget(self.assist_slider_GREEN)
+        self.layout_L.addSpacerItem(self.spacer)
 
-        # RIGHT
+        # RIGHT HALF
         # Photolithography preview
         # Make a miniature scene that replicates the DLP output
         self.preview_text_title = QLabel("Photolithography Preview:")
@@ -219,7 +180,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         
 
         # Output resolution:
-        self.resolution_label = QLabel(f"Output resolution: {DLP.width} x {DLP.height}")
+        self.resolution_label = QLabel(f"Output resolution: {DLP.width} x {DLP.height}")        
         
         # Exposure time
         self.exposure_label = QLabel("Exposure Time:")
@@ -267,24 +228,22 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_circle.addLayout(self.layout_circle_offset_y)
         
 
-        # Add widgets to RIGHT layout
-        self.layout_right.addWidget(self.preview_text_title)
-        self.layout_right.addWidget(self.DLP_preview_view)
-        self.layout_right.addWidget(self.resolution_label)
+        # Add widgets to right layout
+        self.layout_R.addWidget(self.preview_text_title)
+        self.layout_R.addWidget(self.DLP_preview_view)
+        self.layout_R.addWidget(self.resolution_label)
         self.layout_exposure.addWidget(self.exposure_label)
         self.layout_exposure.addWidget(self.exposure_spinbox)
         self.layout_exposure.addWidget(self.exposure_STOP)
         self.layout_exposure.addWidget(self.exposure_START)
-        self.layout_right.addLayout(self.layout_exposure)
-        self.layout_right.addWidget(self.alignment_svg_checkbox)
-        self.layout_right.addWidget(self.alignment_circle_checkbox)
-        self.layout_right.addWidget(self.alignment_circle_text)
-        self.layout_right.addLayout(self.layout_circle)
+        self.layout_R.addLayout(self.layout_exposure)
+        self.layout_R.addWidget(self.alignment_svg_checkbox)
+        self.layout_R.addWidget(self.alignment_circle_checkbox)
+        self.layout_R.addWidget(self.alignment_circle_text)
+        self.layout_R.addLayout(self.layout_circle)
 
-        # Add the three main sections to the top-level layout
-        self.layout_top.addLayout(self.layout_left, 1)
-        self.layout_top.addLayout(self.layout_middle, 1)
-        self.layout_top.addLayout(self.layout_right, 1)
+        self.layout_top.addLayout(self.layout_L)
+        self.layout_top.addLayout(self.layout_R)
         # self.layout_top.insertSpacerItem(1, QSizePolicy.Expanding)
 
         self.widget = QWidget()
@@ -292,14 +251,6 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.setCentralWidget(self.widget)
 
         ############## Button Bindings ##############
-        # Gantry controller
-        self.stage_x_up.clicked.connect(lambda: gantry.moveMOTOR("X+100"))
-        self.stage_x_down.clicked.connect(lambda: gantry.moveMOTOR("X-100"))
-        self.stage_y_up.clicked.connect(lambda: gantry.moveMOTOR("Y+100"))
-        self.stage_y_down.clicked.connect(lambda: gantry.moveMOTOR("Y-100"))
-        self.stage_z_up.clicked.connect(lambda: gantry.moveMOTOR("Z+100"))
-        self.stage_z_down.clicked.connect(lambda: gantry.moveMOTOR("Z-100"))
-        self.stage_datum.clicked.connect(lambda: print("No function connected."))
         # Combo boxes
         self.photo_cbox.currentIndexChanged.connect(self.update_images)
         self.assist_cbox.currentIndexChanged.connect(self.update_images)
@@ -396,21 +347,16 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
 class DLP():
     def __init__(self):
-        try: # Try to connect to the DLP as the second display.
+        try:
             self.screen_geometry = QApplication.screens()[1].geometry()
             self.width = self.screen_geometry.width()
             self.height = self.screen_geometry.height()
-            self.connected = True
             print(self.screen_geometry)
         except IndexError:
-            self.connected = False
-            self.width = 0
-            self.height = 0
-            # self.screen_geometry = QApplication.screens()[0].geometry()
-            # self.width = self.screen_geometry.width()
-            # self.height = self.screen_geometry.height()
-            # print("Only one display detected; showing image on primary display.")
-            print("No second display detected. Running GUI only.")
+            self.screen_geometry = QApplication.screens()[0].geometry()
+            self.width = self.screen_geometry.width()
+            self.height = self.screen_geometry.height()
+            print("Only one display detected; showing image on primary display.")
         except Exception as e:
             print(e)
 
@@ -420,21 +366,20 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
         self.setWindowTitle("Image")
 
         # Attempt to move image to second display
-        if DLP.connected:
-            try:
-                self.setGeometry(DLP.screen_geometry)
-                self.showFullScreen()
-                if DLP.width < config.LITHO_SIZE_PX_X or DLP.height < config.LITHO_SIZE_PX_Y:
-                    print("Warning: Second display resolution is smaller than lithography image size.")
-                    print("Cropping images to:")
-                    # Set to a square ratio based on max screen height
-                    config.LITHO_SIZE_PX_Y = DLP.height
-                    # config.LITHO_SIZE_PX_X = DLP.height
-                    print(f"\tWidth: {config.LITHO_SIZE_PX_X} px")
-                    print(f"\tHeight: {config.LITHO_SIZE_PX_Y} px")
+        try:
+            self.setGeometry(DLP.screen_geometry)
+            self.showFullScreen()
+            if DLP.width < config.LITHO_SIZE_PX_X or DLP.height < config.LITHO_SIZE_PX_Y:
+                print("Warning: Second display resolution is smaller than lithography image size.")
+                print("Cropping images to:")
+                # Set to a square ratio based on max screen height
+                config.LITHO_SIZE_PX_Y = DLP.height
+                # config.LITHO_SIZE_PX_X = DLP.height
+                print(f"\tWidth: {config.LITHO_SIZE_PX_X} px")
+                print(f"\tHeight: {config.LITHO_SIZE_PX_Y} px")
 
-            except Exception as e:
-                print(e)
+        except Exception as e:
+            print(e)
         
         # Finish setting up the window by blacking everything out.
         self.blackout()
@@ -456,8 +401,7 @@ mainWindow = MainWindow()
 mainWindow.show()
 
 lithoWindow = LithoWindow(mainWindow)
-if DLP.connected:
-    lithoWindow.show()
+lithoWindow.show()
 
 # Note after doing all this: There's probably a better way to do all this. (P_P)
 
