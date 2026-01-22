@@ -322,6 +322,24 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_START.clicked.connect(self.confirmStart)
         self.exposure_STOP.clicked.connect(self.stopPhotolithography)
 
+    def keyPressEvent(self, event):
+        key = event.key()
+
+        if key == Qt.Key_Up:
+            gantry.moveMOTOR("Y+100")
+        elif key == Qt.Key_Down:
+            gantry.moveMOTOR("Y-100")
+        elif key == Qt.Key_Left:
+            gantry.moveMOTOR("X-100")
+        elif key == Qt.Key_Right:
+            gantry.moveMOTOR("X+100")
+        elif key == Qt.Key_PageUp:
+            gantry.moveMOTOR("Z+50")
+        elif key == Qt.Key_PageDown:
+            gantry.moveMOTOR("Z-50")
+        else:
+            super().keyPressEvent(event)
+
     def update_UV_value(self):
         value = self.photo_slider_UV.value()
         config.BRIGHTNESS_UV = value
@@ -456,23 +474,7 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
         self.blackout_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setCentralWidget(self.blackout_view)
 
-def keyPressEvent(self, event):
-    key = event.key()
 
-    if key == Qt.Key_Up:
-        gantry.moveMotor("Y+100")
-    elif key == Qt.Key_Down:
-        gantry.moveMotor("Y-100")
-    elif key == Qt.Key_Left:
-        gantry.moveMotor("X-100")
-    elif key == Qt.Key_Right:
-        gantry.moveMotor("X+100")
-    elif key == Qt.Key_PageUp:
-        gantry.moveMotor("Z+50")
-    elif key == Qt.Key_PageDown:
-        gantry.moveMotor("Z-50")
-    else:
-        super().keyPressEvent(event)
 
 app = QApplication(sys.argv)
 
