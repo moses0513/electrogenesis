@@ -3,6 +3,8 @@ from PIL import Image, ImageTk  # for logo display
 from mcu_side import move_motor
 import os
 
+X, Y, Z = 0, 0, 0 # XYZ coords of the gantry stage
+
 # COMMAND FUNCTION
 def moveMOTOR(command):
     print(f"Command: {command}")
@@ -16,6 +18,13 @@ def moveMOTOR(command):
     steps = int(command[2:])
 
     move_motor(axis, direction, steps)
+
+def datum():
+    # Make all coordinates zero
+    # Do this by subtracting their current position.
+    move_motor('X', '-', X)
+    move_motor('Y', '-', Y)
+    move_motor('Z', '-', Z)
 
 """
 

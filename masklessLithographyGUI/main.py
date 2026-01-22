@@ -114,6 +114,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_left = QVBoxLayout()
         self.layout_middle = QVBoxLayout()
         self.layout_right = QVBoxLayout()
+        self.layout_coords = QGridLayout()
         self.layout_stage_controller = QGridLayout()
         self.layout_exposure = QHBoxLayout()
         self.layout_circle = QHBoxLayout()
@@ -123,9 +124,14 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_svg_preview = QStackedLayout()
 
         # LEFT
-        # Camera feed and stage controller
+        # Camera feed
         self.camera_label = QLabel("Live Camera Footage")
         self.camFeed = camera.CameraFeed()
+        # Coordinate display
+        self.coord_x_label = QLabel(f"X: {gantry.X}")
+        self.coord_y_label = QLabel(f"Y: {gantry.Y}")
+        self.coord_z_label = QLabel(f"Z: {gantry.Z}")
+        # Stage controller
         self.stage_controller_label = QLabel("Stage Controller")
         self.stage_x_up = QPushButton("X+")
         self.stage_x_down = QPushButton("X-")
@@ -136,7 +142,10 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.stage_datum = QPushButton("Datum")
 
         self.layout_left.addWidget(self.camFeed)
-        self.layout_left.addLayout(self.layout_stage_controller)
+        self.layout_coords.addWidget(self.coord_x_label, 0, 0)
+        self.layout_coords.addWidget(self.coord_y_label, 0, 1)
+        self.layout_coords.addWidget(self.coord_z_label, 0, 2)
+        self.layout_left.addLayout(self.layout_coords)
         self.layout_stage_controller.addWidget(self.stage_x_up, 1, 3)
         self.layout_stage_controller.addWidget(self.stage_x_down, 1, 0)
         self.layout_stage_controller.addWidget(self.stage_y_up, 0, 1,)
@@ -144,6 +153,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_stage_controller.addWidget(self.stage_z_up, 0, 3)
         self.layout_stage_controller.addWidget(self.stage_z_down, 2, 3)
         self.layout_stage_controller.addWidget(self.stage_datum, 1, 1)
+        self.layout_left.addLayout(self.layout_stage_controller)
 
 
         # MIDDLE
@@ -293,21 +303,13 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         ############## Button Bindings ##############
         # Gantry controller
-        self.stage_x_up.clicked.connect(lambda: gantry.moveMOTOR("X+100"))
-        self.stage_x_down.clicked.connect(lambda: gantry.moveMOTOR("X-100"))
-        self.stage_y_up.clicked.connect(lambda: gantry.moveMOTOR("Y+100"))
-        self.stage_y_down.clicked.connect(lambda: gantry.moveMOTOR("Y-100"))
-        self.stage_z_up.clicked.connect(lambda: gantry.moveMOTOR("Z+100"))
-        self.stage_z_down.clicked.connect(lambda: gantry.moveMOTOR("Z-100"))
-        self.stage_datum.clicked.connect(lambda: print("No function connected."))
-        # KEYBOARD SHORTCUTS
-        # app.bind("<Up>", lambda: gantry.moveMOTOR("Y+100"))
-        # app.bind("<Down>", lambda: gantry.moveMOTOR("Y-100"))
-        # app.bind("<Left>", lambda: gantry.moveMOTOR("X-100"))
-        # app.bind("<Right>", lambda: gantry.moveMOTOR("X+100"))
-        # app.bind("<Prior>", lambda: gantry.moveMOTOR("Z+50"))   # Page Up
-        # app.bind("<Next>", lambda: gantry.moveMOTOR("Z-50"))    # Page Down
-
+        self.stage_x_up.clicked.connect(lambda: moveMOTOR("X+100"))
+        self.stage_x_down.clicked.connect(lambda: moveMOTOR("X-100"))
+        self.stage_y_up.clicked.connect(lambda: moveMOTOR("Y+100"))
+        self.stage_y_down.clicked.connect(lambda: moveMOTOR("Y-100"))
+        self.stage_z_up.clicked.connect(lambda: moveMOTOR("Z+100"))
+        self.stage_z_down.clicked.connect(lambda: moveMOTOR("Z-100"))
+        self.stage_datum.clicked.connect(lambda: datum())
         # Combo boxes
         self.photo_cbox.currentIndexChanged.connect(self.update_images)
         self.assist_cbox.currentIndexChanged.connect(self.update_images)
@@ -322,20 +324,21 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_START.clicked.connect(self.confirmStart)
         self.exposure_STOP.clicked.connect(self.stopPhotolithography)
 
+    # KEYBOARD BINDINGS
     def keyPressEvent(self, event):
         key = event.key()
 
-        if key == Qt.Key_Up:
+        if key == Qt.Key.Key_Up:
             gantry.moveMOTOR("Y+100")
-        elif key == Qt.Key_Down:
+        elif key == Qt.Key.Key_Down:
             gantry.moveMOTOR("Y-100")
-        elif key == Qt.Key_Left:
+        elif key == Qt.Key.Key_Left:
             gantry.moveMOTOR("X-100")
-        elif key == Qt.Key_Right:
+        elif key == Qt.Key.Key_Right:
             gantry.moveMOTOR("X+100")
-        elif key == Qt.Key_PageUp:
+        elif key == Qt.Key.Key_PageUp:
             gantry.moveMOTOR("Z+50")
-        elif key == Qt.Key_PageDown:
+        elif key == Qt.Key.Key_PageDown:
             gantry.moveMOTOR("Z-50")
         else:
             super().keyPressEvent(event)
@@ -474,7 +477,21 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
         self.blackout_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setCentralWidget(self.blackout_view)
 
+def moveMOTOR(command):
+    # NOTE: Needs to read magnetic encoders to show actual position.
+    gantry.moveMOTOR(command) # Move the gantry
+    # Update GUI
+    updateCoordinates()
 
+def updateCoordinates():
+    mainWindow.coord_x_label.setText(f"X: {gantry.X}")
+    mainWindow.coord_y_label.setText(f"Y: {gantry.Y}")
+    mainWindow.coord_z_label.setText(f"Z: {gantry.Z}")
+
+def datum():
+    # Move gantry to home position (0, 0, 0)
+    gantry.datum()
+    updateCoordinates()
 
 app = QApplication(sys.argv)
 

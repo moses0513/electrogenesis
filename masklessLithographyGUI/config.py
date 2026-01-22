@@ -12,3 +12,8 @@ EXPOSURE_TIME = 15.0  # Default exposure time in seconds
 BRIGHTNESS_UV = 128  # Default UV LED brightness (0-255)
 BRIGHTNESS_RED = 128  # Default Red LED brightness (0-255)
 BRIGHTNESS_GREEN = 0  # Default Green LED brightness (0-255)
+
+# Initial X, Y, Z position of the gantry's stage (units?)
+STAGE_X = 0 
+STAGE_Y = 0
+STAGE_Z = 0
