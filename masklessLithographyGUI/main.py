@@ -1,126 +1,327 @@
+# Main GUI Window
+# This file runs the main window for the maskless photolithography process.
+# With the GUI, you can do the following:
+# - View live microscopic camera footage of the stage (the wafer on the vacuum chuck)
+# - Move the stage (aka the gantry) in X, Y, and Z directions, and return to the datum
+# - Select the image to be exposed onto the wafer
+# - Adjust brightness of the UV LEDs
+# - Adjust brightness of the red/green LEDs, which are used to align the wafer prior to exposing
+# - Preview the files and exposed areas that will be on the wafer
+# - Set exposure time
+# - Start and stop the exposure, with a UV safety warning that must be confirmed before starting.
+
+
+"""
+TO-DO:
+
+X Change SVG code to PNG code
+X Make SVGs update when new photo/assist files are selected from GUI
+X Make second window reflect preview window
+X Fix broken preview (happened right after adding DLP_preview_view to second display)
+_ Prevent scrolling on DLP window
+X Dialog box to confirm start or cancel
+X Update aligment assist layers on second monitor 
+_ Add circle asset with adjustable dia, x-offset and y-offset
+X Color filtering
+_ Adjustable position of photo/align layers
+_ Runtime dialog with stopwatch, goal
+_ Fix config values not updating (images do not crop. use a different strategy for global vars? re-grab the config file?)
+_ Add a displayAlignmentImage() function that connects to the "Draw alignment image on wafer" checkbox
+
+Perhaps:
+_ Prevent dragging window into DLP or moving mouse onto it... Might get really technical
+
+"""
+
 import sys, os
 import config, image_processing, camera
 import gantryControl as gantry
-
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget,
-    QGraphicsScene, QGraphicsView,
-    QVBoxLayout, QHBoxLayout, QGridLayout,
-    QStackedLayout, QLabel, QComboBox,
-    QSlider, QCheckBox, QSpinBox,
-    QDoubleSpinBox, QPushButton,
-    QSpacerItem, QMessageBox, QSizePolicy
+from PyQt5.QtWidgets import (
+    QApplication, 
+    QMainWindow, 
+    QWidget, 
+    QGraphicsScene,
+    QGraphicsColorizeEffect,
+    QGraphicsView,
+    QVBoxLayout, 
+    QHBoxLayout,
+    QGridLayout,
+    QStackedLayout,
+    QLabel,
+    QComboBox,
+    QSlider,
+    QCheckBox,
+    QSpinBox,
+    QDoubleSpinBox,
+    QPushButton,
+    QSpacerItem,
+    QMessageBox,
+    QSizePolicy
 )
-
-from PyQt6.QtSvgWidgets import QGraphicsSvgItem
-from PyQt6.QtCore import Qt, QSize, QRectF
-from PyQt6.QtGui import QResizeEvent, QBrush, QColor
-
+from PyQt5.QtSvg import QGraphicsSvgItem
+from PyQt5.QtCore import Qt, QSize, QRectF
+from PyQt5.QtGui import QResizeEvent, QBrush, QColor
 
 png_images = os.listdir("png_images")
-
+screens = QApplication.screens()
 
 class GraphicsView(QGraphicsView):
-    def __init__(self, scene, parent=None):
+    def __init__(self, scene, parent):
         super().__init__(scene, parent)
+        # Fixed aspect ratio for the viewport
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy.setHeightForWidth(True)
+        self.setSizePolicy = sizePolicy
 
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
+        noScroll = Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        self.setVerticalScrollBarPolicy(noScroll)
+        self.setHorizontalScrollBarPolicy(noScroll)
+        
+        
     def sizeHint(self):
         return QSize(400, 600)
-
+        # return QSize(int(DLP.width//2.5), int(DLP.height//2.5))
+    def heightForWidth(self, width):
+        return width * 1.5
     def resizeEvent(self, event: QResizeEvent):
-        super().resizeEvent(event)
-        self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        super(GraphicsView, self).resizeEvent(event)
+        self.windowRect = QRectF(0, 0, DLP.width, DLP.height)
+        self.fitInView(self.windowRect, Qt.KeepAspectRatio)
 
+    
 
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow): # Main GUI for controlling photolithography settings and image
     def __init__(self):
         super().__init__()
-
         self.setWindowTitle("EGEN Photolithography Settings")
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setFocus()
+        
+        # Style and positioning
+        QApplication.setStyle("Fusion") 
+        try:
+            with open("style.css", "r") as f:
+                style = f.read()
+                self.setStyleSheet(style)
+        except Exception as e:
+            print("You're out of style :(")
+            print(e)
 
-        QApplication.setStyle("Fusion")
-
+        # GUI is layed out as follows:
+        # Three sections, left, middle, and right
+        # Left: Live camera footage, stage controller
+        # Middle: Maskless lithography settings, Visual aligment assist settings
+        # Right: Maskless lithography preview, Toggle circle color selectors
         self.layout_top = QHBoxLayout()
         self.layout_left = QVBoxLayout()
         self.layout_middle = QVBoxLayout()
         self.layout_right = QVBoxLayout()
-        self.layout_stage = QGridLayout()
+        self.layout_stage_controller = QGridLayout()
+        self.layout_exposure = QHBoxLayout()
+        self.layout_circle = QHBoxLayout()
+        self.layout_circle_dia = QVBoxLayout()
+        self.layout_circle_offset_x = QVBoxLayout()
+        self.layout_circle_offset_y = QVBoxLayout()
+        self.layout_svg_preview = QStackedLayout()
 
-        # Stage buttons
+        # LEFT
+        # Camera feed and stage controller
+        self.camera_label = QLabel("Live Camera Footage")
+        self.camFeed = camera.CameraFeed()
+        self.stage_controller_label = QLabel("Stage Controller")
         self.stage_x_up = QPushButton("X+")
         self.stage_x_down = QPushButton("X-")
         self.stage_y_up = QPushButton("Y+")
         self.stage_y_down = QPushButton("Y-")
         self.stage_z_up = QPushButton("Z+")
         self.stage_z_down = QPushButton("Z-")
+        self.stage_datum = QPushButton("Datum")
 
-        for b in [
-            self.stage_x_up, self.stage_x_down,
-            self.stage_y_up, self.stage_y_down,
-            self.stage_z_up, self.stage_z_down
-        ]:
-            b.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.layout_left.addWidget(self.camFeed)
+        self.layout_left.addLayout(self.layout_stage_controller)
+        self.layout_stage_controller.addWidget(self.stage_x_up, 1, 3)
+        self.layout_stage_controller.addWidget(self.stage_x_down, 1, 0)
+        self.layout_stage_controller.addWidget(self.stage_y_up, 0, 1,)
+        self.layout_stage_controller.addWidget(self.stage_y_down, 2, 1)
+        self.layout_stage_controller.addWidget(self.stage_z_up, 0, 3)
+        self.layout_stage_controller.addWidget(self.stage_z_down, 2, 3)
+        self.layout_stage_controller.addWidget(self.stage_datum, 1, 1)
 
-        self.layout_stage.addWidget(self.stage_y_up, 0, 1)
-        self.layout_stage.addWidget(self.stage_x_down, 1, 0)
-        self.layout_stage.addWidget(self.stage_x_up, 1, 2)
-        self.layout_stage.addWidget(self.stage_y_down, 2, 1)
-        self.layout_stage.addWidget(self.stage_z_up, 0, 2)
-        self.layout_stage.addWidget(self.stage_z_down, 2, 2)
 
-        self.layout_left.addLayout(self.layout_stage)
+        # MIDDLE
+        # Photolithography settings (outputs to UV LEDs)
+        self.photo_text_title = QLabel("Photolithography Settings")
+        QLabel.setAlignment(self.photo_text_title, Qt.AlignCenter)
 
-        # Preview
-        self.scene = QGraphicsScene()
-        self.scene.setBackgroundBrush(QBrush(QColor(0, 0, 0)))
-        self.view = GraphicsView(self.scene, self)
+        self.photo_text_file = QLabel(f'Photolithography File: {config.PHOTO_FILE}')
+        self.photo_cbox = QComboBox()
+        self.photo_cbox.addItems(png_images)
+        self.photo_cbox.setCurrentIndex(1)
 
-        self.layout_right.addWidget(self.view)
+        self.photo_text_UV = QLabel(f'UV LED Brightness: {config.BRIGHTNESS_UV}')
+        self.photo_slider_UV = QSlider()
+        self.photo_slider_UV.setOrientation(1)
+        self.photo_slider_UV.setMinimum(0)
+        self.photo_slider_UV.setMaximum(255)
+        self.photo_slider_UV.setValue(config.BRIGHTNESS_UV)
 
-        self.layout_top.addLayout(self.layout_left)
-        self.layout_top.addLayout(self.layout_middle)
-        self.layout_top.addLayout(self.layout_right)
+        # Alignment layer settings (can output to Red or Green LEDs)
+        self.assist_text_title = QLabel("Alignment Settings")
+        QLabel.setAlignment(self.assist_text_title, Qt.AlignCenter)
+        self.assist_text_file = QLabel(f'Image File: {config.PHOTO_FILE}')
+        self.assist_cbox = QComboBox()
+        self.assist_cbox.addItems(png_images)
+        self.assist_cbox.setCurrentIndex(1)
 
-        central = QWidget()
-        central.setLayout(self.layout_top)
-        central.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.setCentralWidget(central)
+        # Red and Green LED brightness sliders
+        self.assist_text_RED = QLabel(f'Red LED Brightness: {config.BRIGHTNESS_RED}')
+        self.assist_slider_RED = QSlider()
+        self.assist_slider_RED.setOrientation(1)
+        self.assist_slider_RED.setMinimum(0)
+        self.assist_slider_RED.setMaximum(255)
+        self.assist_slider_RED.setValue(config.BRIGHTNESS_RED)
 
-        # Button bindings
+        self.assist_text_GREEN = QLabel(f'Green LED Brightness: {config.BRIGHTNESS_GREEN}')
+        self.assist_slider_GREEN = QSlider()
+        self.assist_slider_GREEN.setOrientation(1)
+        self.assist_slider_GREEN.setMinimum(0)
+        self.assist_slider_GREEN.setMaximum(255)
+        self.assist_slider_GREEN.setValue(config.BRIGHTNESS_GREEN)
+
+        self.spacer = QSpacerItem(40, 40)
+
+        # Add widgets to MIDDLE layout
+        self.layout_middle.addWidget(self.photo_text_title)
+        self.layout_middle.addSpacerItem(self.spacer)
+        self.layout_middle.addWidget(self.photo_text_file)
+        self.layout_middle.addWidget(self.photo_cbox)
+        self.layout_middle.addWidget(self.photo_text_UV)
+        self.layout_middle.addWidget(self.photo_slider_UV)
+        self.layout_middle.addWidget(self.assist_text_title)
+        self.layout_middle.addWidget(self.assist_text_file)
+        self.layout_middle.addWidget(self.assist_cbox)
+        self.layout_middle.addWidget(self.assist_text_RED)
+        self.layout_middle.addWidget(self.assist_slider_RED)
+        self.layout_middle.addWidget(self.assist_text_GREEN)
+        self.layout_middle.addWidget(self.assist_slider_GREEN)
+        self.layout_middle.addSpacerItem(self.spacer)
+
+        # RIGHT
+        # Photolithography preview
+        # Make a miniature scene that replicates the DLP output
+        self.preview_text_title = QLabel("Photolithography Preview:")
+        QLabel.setAlignment(self.preview_text_title, Qt.AlignCenter)
+
+        self.DLP_preview_scene = QGraphicsScene()
+        self.DLP_preview_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Complete blackout background
+        self.photo_and_align_graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE) # Return a combined RGB image from photo and align layers
+        self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
+        self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
+
+        
+
+        # Output resolution:
+        self.resolution_label = QLabel(f"Output resolution: {DLP.width} x {DLP.height}")
+        
+        # Exposure time
+        self.exposure_label = QLabel("Exposure Time:")
+
+        # Exposure time spinbox
+        self.exposure_spinbox = QDoubleSpinBox()
+        self.exposure_spinbox.setRange(0, 30)
+        self.exposure_spinbox.setValue(config.EXPOSURE_TIME)
+        self.exposure_spinbox.suffix = " sec"
+        self.exposure_spinbox.setDecimals(2)
+
+        # Exposure start/stop buttons
+        self.exposure_STOP = QPushButton("STOP")
+        self.exposure_STOP.setStyleSheet("background-color: red; color: white; font-weight: bold;")
+        self.exposure_START = QPushButton("START")
+        self.exposure_START.setStyleSheet("background-color: green; color: white; font-weight: bold;")
+
+        # Alignment SVG layer
+        self.alignment_svg_checkbox = QCheckBox("Draw alignment image on wafer")
+
+        # Alignment circle layer
+        self.alignment_circle_checkbox = QCheckBox("Draw alignment circle on wafer")
+        self.alignment_circle_text = QLabel("Aligment circle settings:")
+
+        self.alignment_circle_spinbox_dia_label = QLabel("Diameter (px):")
+        self.alignment_circle_spinbox_dia = QSpinBox()
+        self.alignment_circle_spinbox_dia.setRange(10, 2000)
+        self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia_label)
+        self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia)
+
+        self.alignment_circle_spinbox_offset_x_label = QLabel("Offset X (px):")
+        self.alignment_circle_spinbox_offset_x = QSpinBox()
+        self.alignment_circle_spinbox_offset_x.setRange(-1000, 1000)
+        self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x_label)
+        self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x)
+
+        self.alignment_circle_spinbox_offset_y_label = QLabel("Offset Y (px):")
+        self.alignment_circle_spinbox_offset_y = QSpinBox()
+        self.alignment_circle_spinbox_offset_y.setRange(-1000, 1000)
+        self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y_label)
+        self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y)
+
+        self.layout_circle.addLayout(self.layout_circle_dia)
+        self.layout_circle.addLayout(self.layout_circle_offset_x)
+        self.layout_circle.addLayout(self.layout_circle_offset_y)
+        
+
+        # Add widgets to RIGHT layout
+        self.layout_right.addWidget(self.preview_text_title)
+        self.layout_right.addWidget(self.DLP_preview_view)
+        self.layout_right.addWidget(self.resolution_label)
+        self.layout_exposure.addWidget(self.exposure_label)
+        self.layout_exposure.addWidget(self.exposure_spinbox)
+        self.layout_exposure.addWidget(self.exposure_STOP)
+        self.layout_exposure.addWidget(self.exposure_START)
+        self.layout_right.addLayout(self.layout_exposure)
+        self.layout_right.addWidget(self.alignment_svg_checkbox)
+        self.layout_right.addWidget(self.alignment_circle_checkbox)
+        self.layout_right.addWidget(self.alignment_circle_text)
+        self.layout_right.addLayout(self.layout_circle)
+
+        # Add the three main sections to the top-level layout
+        self.layout_top.addLayout(self.layout_left, 1)
+        self.layout_top.addLayout(self.layout_middle, 1)
+        self.layout_top.addLayout(self.layout_right, 1)
+        # self.layout_top.insertSpacerItem(1, QSizePolicy.Expanding)
+
+        self.widget = QWidget()
+        self.widget.setLayout(self.layout_top)
+        self.setCentralWidget(self.widget)
+
+        ############## Button Bindings ##############
+        # Gantry controller
         self.stage_x_up.clicked.connect(lambda: gantry.moveMOTOR("X+100"))
         self.stage_x_down.clicked.connect(lambda: gantry.moveMOTOR("X-100"))
         self.stage_y_up.clicked.connect(lambda: gantry.moveMOTOR("Y+100"))
         self.stage_y_down.clicked.connect(lambda: gantry.moveMOTOR("Y-100"))
         self.stage_z_up.clicked.connect(lambda: gantry.moveMOTOR("Z+100"))
         self.stage_z_down.clicked.connect(lambda: gantry.moveMOTOR("Z-100"))
+        self.stage_datum.clicked.connect(lambda: print("No function connected."))
+        # KEYBOARD SHORTCUTS
+        # app.bind("<Up>", lambda: gantry.moveMOTOR("Y+100"))
+        # app.bind("<Down>", lambda: gantry.moveMOTOR("Y-100"))
+        # app.bind("<Left>", lambda: gantry.moveMOTOR("X-100"))
+        # app.bind("<Right>", lambda: gantry.moveMOTOR("X+100"))
+        # app.bind("<Prior>", lambda: gantry.moveMOTOR("Z+50"))   # Page Up
+        # app.bind("<Next>", lambda: gantry.moveMOTOR("Z-50"))    # Page Down
 
-    # 🔥 GUARANTEED keyboard capture
-    def keyPressEvent(self, event):
-        key = event.key()
+        # Combo boxes
+        self.photo_cbox.currentIndexChanged.connect(self.update_images)
+        self.assist_cbox.currentIndexChanged.connect(self.update_images)
+        # Sliders
+        self.photo_slider_UV.sliderReleased.connect(self.update_UV_value) # Update images when released
+        self.assist_slider_RED.sliderReleased.connect(self.update_RED_value)
+        self.assist_slider_GREEN.sliderReleased.connect(self.update_GREEN_value)
+        self.photo_slider_UV.valueChanged.connect(lambda: self.photo_text_UV.setText(f'UV LED Brightness: {self.photo_slider_UV.value()}')) # Update text while moving
+        self.assist_slider_RED.valueChanged.connect(lambda: self.assist_text_RED.setText(f'Red LED Brightness: {self.assist_slider_RED.value()}'))
+        self.assist_slider_GREEN.valueChanged.connect(lambda: self.assist_text_GREEN.setText(f'Green LED Brightness: {self.assist_slider_RED.value()}'))
+        # Start/stop buttons
+        self.exposure_START.clicked.connect(self.confirmStart)
+        self.exposure_STOP.clicked.connect(self.stopPhotolithography)
 
-<<<<<<< HEAD
-        if key == Qt.Key.Key_Up:
-            gantry.moveMOTOR("Y+100")
-        elif key == Qt.Key.Key_Down:
-            gantry.moveMOTOR("Y-100")
-        elif key == Qt.Key.Key_Left:
-            gantry.moveMOTOR("X-100")
-        elif key == Qt.Key.Key_Right:
-            gantry.moveMOTOR("X+100")
-        elif key == Qt.Key.Key_PageUp:
-            gantry.moveMOTOR("Z+50")
-        elif key == Qt.Key.Key_PageDown:
-            gantry.moveMOTOR("Z-50")
-        else:
-            super().keyPressEvent(event)
-
-=======
     def keyPressEvent(self, event):
         key = event.key()
 
@@ -274,9 +475,17 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
         self.setCentralWidget(self.blackout_view)
 
 
->>>>>>> jacob
 
 app = QApplication(sys.argv)
-window = MainWindow()
-window.show()
+
+DLP = DLP()
+mainWindow = MainWindow()
+mainWindow.show()
+
+lithoWindow = LithoWindow(mainWindow)
+if DLP.connected:
+    lithoWindow.show()
+
+# Note after doing all this: There's probably a better way to do all this. (P_P)
+
 app.exec()
