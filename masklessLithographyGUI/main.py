@@ -300,6 +300,14 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.stage_z_up.clicked.connect(lambda: gantry.moveMOTOR("Z+100"))
         self.stage_z_down.clicked.connect(lambda: gantry.moveMOTOR("Z-100"))
         self.stage_datum.clicked.connect(lambda: print("No function connected."))
+        # KEYBOARD SHORTCUTS
+        # app.bind("<Up>", lambda: gantry.moveMOTOR("Y+100"))
+        # app.bind("<Down>", lambda: gantry.moveMOTOR("Y-100"))
+        # app.bind("<Left>", lambda: gantry.moveMOTOR("X-100"))
+        # app.bind("<Right>", lambda: gantry.moveMOTOR("X+100"))
+        # app.bind("<Prior>", lambda: gantry.moveMOTOR("Z+50"))   # Page Up
+        # app.bind("<Next>", lambda: gantry.moveMOTOR("Z-50"))    # Page Down
+
         # Combo boxes
         self.photo_cbox.currentIndexChanged.connect(self.update_images)
         self.assist_cbox.currentIndexChanged.connect(self.update_images)
@@ -448,6 +456,23 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
         self.blackout_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setCentralWidget(self.blackout_view)
 
+def keyPressEvent(self, event):
+    key = event.key()
+
+    if key == Qt.Key_Up:
+        gantry.moveMotor("Y+100")
+    elif key == Qt.Key_Down:
+        gantry.moveMotor("Y-100")
+    elif key == Qt.Key_Left:
+        gantry.moveMotor("X-100")
+    elif key == Qt.Key_Right:
+        gantry.moveMotor("X+100")
+    elif key == Qt.Key_PageUp:
+        gantry.moveMotor("Z+50")
+    elif key == Qt.Key_PageDown:
+        gantry.moveMotor("Z-50")
+    else:
+        super().keyPressEvent(event)
 
 app = QApplication(sys.argv)
 
