@@ -1,5 +1,6 @@
 # mcu_side.py
 import time
+import gantryControl as gantry
 
 # -----------------------------
 # PLATFORM DETECTION
@@ -41,6 +42,15 @@ def move_motor(axis, direction, steps):
     direction: '+' or '-'
     steps: int
     """
+    
+    # Update position variables for gui
+    if (axis == 'X'):
+        gantry.X += steps if direction == '+' else -steps
+    if (axis == 'Y'):
+        gantry.Y += steps if direction == '+' else -steps
+    if (axis == 'Z'):
+        gantry.Z += steps if direction == '+' else -steps
+    print(f'New Position: X={gantry.X}, Y={gantry.Y}, Z={gantry.Z}')
 
     if not ON_PI:
         print(f"[SIM] {axis}{direction} moving {steps} steps")
@@ -56,6 +66,7 @@ def move_motor(axis, direction, steps):
         time.sleep(STEP_DELAY)
         GPIO.output(step_pin, GPIO.LOW)
         time.sleep(STEP_DELAY)
+
 
 def cleanup():
     if ON_PI:

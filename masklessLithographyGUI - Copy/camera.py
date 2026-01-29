@@ -1,15 +1,24 @@
 # Used for testing live footage from the basler camera
 # for the maskless photolithography machine.
+<<<<<<< HEAD
 # The footage needs to be in the form of a PyQt5 widget.
 # Otherwise, this can be done with a simple OpenCV window.
 # Updated 1/20/2025 by S. Jacob Finch
 # 
 # Thanks to Google and 'eyllanesc' on stack overflow
+=======
+# The footage needs to be in the form of a PyQt6 widget.
+# Updated 1/26/2025 by S. Jacob Finch
+>>>>>>> jacob
 
 from PyQt6.QtWidgets import  QWidget, QLabel, QApplication
 from PyQt6.QtCore import QThread, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
+<<<<<<< HEAD
 import sys
+=======
+from pypylon import pylon
+>>>>>>> jacob
 import cv2
 
 class Thread(QThread):
@@ -21,7 +30,11 @@ class Thread(QThread):
             # Index will vary based on system.
             # For a laptop, the built-in webcam is usually 0.
             # Sometimes it takes a few seconds to appear.
+<<<<<<< HEAD
             cap = cv2.VideoCapture(0) 
+=======
+            cap = cv2.VideoCapture(camera) 
+>>>>>>> jacob
         except Exception as e:
             print(f"Exception: {e}")
             print("No camera found.")

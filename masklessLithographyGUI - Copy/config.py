@@ -1,10 +1,19 @@
 # Enter parameters here:
+<<<<<<< HEAD
+=======
+import os
+>>>>>>> jacob
 
 LITHO_SIZE_PX_X = 768  # Lithography image size in pixels (X direction)
 LITHO_SIZE_PX_Y = 768  # Lithography image size in pixels (Y direction)
 
+<<<<<<< HEAD
 PHOTO_FILE = "png_images\\25 EGen Logo (White).png" # Use relative path from main script folder
 ALIGNMENT_FILE = "png_images\\25 EGen Logo (White).png"
+=======
+PHOTO_FILE = 'png_images/25 Egen Logo (White).png' # Use relative path from main script folder
+ALIGNMENT_FILE = 'png_images/25 Egen Logo (White).png'
+>>>>>>> jacob
 
 DRAW_BOUNDING_CIRCLE = True  # Draw bounding box around lithography image for alignment purposes
 
