@@ -129,6 +129,8 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Camera feed and stage controller
         self.camera_label = QLabel("Live Camera Footage")
         self.camFeed = camera.CameraFeed()
+        self.camFeed.setFixedSize(640, 480)
+        
         self.stage_controller_label = QLabel("Stage Controller")
         self.stage_x_up = QPushButton("X+")
         self.stage_x_down = QPushButton("X-")
@@ -220,8 +222,11 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
             os.path.join(current_dir, config.ALIGNMENT_FILE)
         ) # Return a combined RGB image from photo and align layers
         self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
+        # self.DLP_preview_scene.setSceneRect(0, 0, 400, 400)
         self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
-
+        print(self.DLP_preview_scene.sceneRect())
+        self.DLP_preview_view.setFixedSize(640, 640)
+        self.DLP_preview_view.fitInView(self.DLP_preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         
 
         # Output resolution:
@@ -288,11 +293,12 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_right.addLayout(self.layout_circle)
 
         # Add the three main sections to the top-level layout
-        self.layout_top.addLayout(self.layout_left, 1)
-        self.layout_top.addLayout(self.layout_middle, 1)
-        self.layout_top.addLayout(self.layout_right, 1)
+        self.layout_top.addLayout(self.layout_left)
+        self.layout_top.addLayout(self.layout_middle)
+        self.layout_top.addLayout(self.layout_right)
         # self.layout_top.insertSpacerItem(1, QSizePolicy.Expanding)
 
+        # The MAIN widget that holds everything
         self.widget = QWidget()
         self.widget.setLayout(self.layout_top)
         self.setCentralWidget(self.widget)
@@ -328,23 +334,24 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_START.clicked.connect(self.confirmStart)
         self.exposure_STOP.clicked.connect(self.stopPhotolithography)
 
-    def keyPressEvent(self, event):
-        key = event.key()
+    # Moses is working on this one, it blows up right now...
+    # def keyPressEvent(self, event):
+    #     key = event.key()
 
-        if key == Qt.Key_Up:
-            gantry.moveMOTOR("Y+100")
-        elif key == Qt.Key_Down:
-            gantry.moveMOTOR("Y-100")
-        elif key == Qt.Key_Left:
-            gantry.moveMOTOR("X-100")
-        elif key == Qt.Key_Right:
-            gantry.moveMOTOR("X+100")
-        elif key == Qt.Key_PageUp:
-            gantry.moveMOTOR("Z+50")
-        elif key == Qt.Key_PageDown:
-            gantry.moveMOTOR("Z-50")
-        else:
-            super().keyPressEvent(event)
+    #     if key == Qt.Key_Up:
+    #         gantry.moveMOTOR("Y+100")
+    #     elif key == Qt.Key_Down:
+    #         gantry.moveMOTOR("Y-100")
+    #     elif key == Qt.Key_Left:
+    #         gantry.moveMOTOR("X-100")
+    #     elif key == Qt.Key_Right:
+    #         gantry.moveMOTOR("X+100")
+    #     elif key == Qt.Key_PageUp:
+    #         gantry.moveMOTOR("Z+50")
+    #     elif key == Qt.Key_PageDown:
+    #         gantry.moveMOTOR("Z-50")
+    #     else:
+    #         super().keyPressEvent(event)
 
     def update_UV_value(self):
         value = self.photo_slider_UV.value()

@@ -2,20 +2,40 @@
 # The footage needs to be retrieved using PyPylon and returned in the form of a PyQt6 widget.
 # Updated 1/31/2025 by S. Jacob Finch
 
+# Some good resources:
+# Tutorial: https://pythonforthelab.com/blog/getting-started-with-basler-cameras/
+# https://www.iditect.com/faq/python/convert-python-opencv-image-numpy-array-to-pyqt-qpixmap-image.html
+
+# To just see the camera working, open the Pylon Viewer application (already installed) made by Basler.
+
+# To help with the rainbow-vomit problem, try making code that averages a few frames to smooth the RGB flicker.
+# Just increasing exposure time washes out the whole image, so this might be a better solution.
+
 from PyQt6.QtWidgets import  QWidget, QLabel, QApplication
 from PyQt6.QtCore import QThread, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
 from pypylon import pylon
 import cv2, sys
 import numpy as np
+import config
 
 converter = pylon.ImageFormatConverter()
-converter.OutputPixelFormat = pylon.PixelType_BGR8packed
+# For outputpixelformat:
+# Grayscale: PixelType_Mono8
+# RGB: PixelType_BGR8packed
+if config.CAMERA_OUTPUT_GRAYSCALE:
+    converter.OutputPixelFormat = pylon.PixelType_Mono8 # Trying grayscale to avoid rainbow vomit
+else:
+    converter.OutputPixelFormat = pylon.PixelType_BGR8packed
 converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
     
 tl_factory = pylon.TlFactory.GetInstance()
 camera = pylon.InstantCamera()
-camera.Attach(tl_factory.CreateFirstDevice())
+try:
+    camera.Attach(tl_factory.CreateFirstDevice())
+except Exception as e:
+    print(e)
+    
 
 class Thread(QThread):
     updatePixmap = pyqtSignal(QImage)
@@ -38,9 +58,16 @@ class Thread(QThread):
                 image = converter.Convert(grab)
                 arr = image.GetArray()
                 arr = np.ascontiguousarray(arr) # silly little numpy formatting
-                h, w, _ = arr.shape
+                
                 # Convert to a QImage so we can use it with the PyQt6 GUI
-                qimg = QImage(arr.data, w, h, arr.strides[0], QImage.Format.Format_BGR888)
+                # This needs to be grayscale if required
+                if config.CAMERA_OUTPUT_GRAYSCALE:
+                    h, w = arr.shape
+                    qimg = QImage(arr.data, w, h, arr.strides[0], QImage.Format.Format_Grayscale8)
+                else:
+                    h, w, _ = arr.shape # RGB has slightly different shape output
+                    qimg = QImage(arr.data, w, h, arr.strides[0], QImage.Format.Format_BGR888)
+                
                 qimg = qimg.copy() # Separate from numpy array in memory, for some reason this helped
                 # Scale it to a good size
                 p = qimg.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
@@ -69,6 +96,7 @@ class CameraFeed(QWidget):
         self.label.setPixmap(QPixmap.fromImage(image))
 
 # FOR DEBUGGING: Uncomment to make a window appear when running this script
+# Also uncomment the PyQt6 libraries at the top of this script
 # app = QApplication(sys.argv)
 # camFeed = CameraFeed()
 # camFeed.show()

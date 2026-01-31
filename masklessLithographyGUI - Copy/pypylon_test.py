@@ -14,7 +14,10 @@ app = QApplication(sys.argv)
 # def np_arr_to_qimage(arr):
 
 converter = pylon.ImageFormatConverter()
-converter.OutputPixelFormat = pylon.PixelType_BGR8packed
+# For outputpixelformat:
+# Grayscale: PixelType_Mono8
+# RGB: PixelType_BGR8packed
+converter.OutputPixelFormat = pylon.PixelType_Mono8 # Trying grayscale to avoid rainbow vomit
 converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
     
 tl_factory = pylon.TlFactory.GetInstance()
@@ -29,8 +32,8 @@ if grab.GrabSucceeded():
     arr = np.ascontiguousarray(arr)
     print("Grabbed an image")
     print(arr)
-    h, w, _ = arr.shape
-    qimg = QImage(arr.data, w, h, arr.strides[0], QImage.Format.Format_BGR888)
+    h, w = arr.shape # For RGB: h, w, _ = arr.shape
+    qimg = QImage(arr.data, w, h, arr.strides[0], QImage.Format.Format_Grayscale8) # Trying grayscale to avoid rainbow vomit (RGB is ...Format_BGR888)
     qimg = qimg.copy()
     print("converted to QImage")
     # qimg = qimg.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
