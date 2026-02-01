@@ -217,15 +217,16 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         self.DLP_preview_scene = QGraphicsScene()
         self.DLP_preview_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Complete blackout background
+        self.DLP_preview_scene.setSceneRect(0, 0, config.LITHO_SIZE_PX_X//4, config.LITHO_SIZE_PX_Y//4)
         self.photo_and_align_graphics_item = image_processing.add_images(
             os.path.join(current_dir, config.PHOTO_FILE), 
             os.path.join(current_dir, config.ALIGNMENT_FILE)
         ) # Return a combined RGB image from photo and align layers
         self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
-        # self.DLP_preview_scene.setSceneRect(0, 0, 400, 400)
         self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
-        print(self.DLP_preview_scene.sceneRect())
-        self.DLP_preview_view.setFixedSize(640, 640)
+        self.DLP_preview_view.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        # self.DLP_preview_view.setFixedSize(640, 640)
+        self.DLP_preview_view.scale(3, 3)
         self.DLP_preview_view.fitInView(self.DLP_preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         
 
@@ -436,11 +437,14 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 class DLP():
     def __init__(self):
         try: # Try to connect to the DLP as the second display.
-            self.screen_geometry = QApplication.screens()[1].geometry()
+            self.screen = QApplication.screens()[1]
+            self.screen_geometry = self.screen.geometry()
+            for s in QApplication.screens():
+                print(s.name())
+                print(s.geometry())
             self.width = self.screen_geometry.width()
             self.height = self.screen_geometry.height()
             self.connected = True
-            print(self.screen_geometry)
         except IndexError:
             self.connected = False
             self.width = 0
@@ -454,7 +458,7 @@ class DLP():
             print(e)
 
 class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
-    def __init__(self, parentWindow):
+    def __init__(self):
         super().__init__()
         self.setWindowTitle("Image")
 
@@ -462,7 +466,6 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
         if DLP.connected:
             try:
                 self.setGeometry(DLP.screen_geometry)
-                self.showFullScreen()
                 if DLP.width < config.LITHO_SIZE_PX_X or DLP.height < config.LITHO_SIZE_PX_Y:
                     print("Warning: Second display resolution is smaller than lithography image size.")
                     print("Cropping images to:")
@@ -480,7 +483,7 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
 
     def blackout(self):
         self.blackout_scene = QGraphicsScene()
-        self.blackout_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Total darkness *evil laugh*
+        self.blackout_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Total darkness.... *evil laugh*
         self.blackout_view = QGraphicsView(self.blackout_scene)
         self.blackout_view.setAutoFillBackground(True)
         self.blackout_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -495,9 +498,11 @@ DLP = DLP()
 mainWindow = MainWindow()
 mainWindow.show()
 
-lithoWindow = LithoWindow(mainWindow)
+lithoWindow = LithoWindow() # MAKE IT NOT A CHILD OF MAIN WINDOW????? <- will vars still work?
 if DLP.connected:
     lithoWindow.show()
+    # lithoWindow.move(DLP.screen_geometry.topLeft())
+    mainWindow.showNormal()
 
 # Note after doing all this: There's probably a better way to do all this. (P_P)
 
