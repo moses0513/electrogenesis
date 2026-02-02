@@ -250,33 +250,34 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_START.setStyleSheet("background-color: green; color: white; font-weight: bold;")
 
         # Alignment SVG layer
-        self.alignment_svg_checkbox = QCheckBox("Draw alignment image on wafer")
+        self.alignment_draw_checkbox = QCheckBox("Draw alignment image on wafer")
+        self.alignment_draw_checkbox.setChecked(True)
 
         # Alignment circle layer
-        self.alignment_circle_checkbox = QCheckBox("Draw alignment circle on wafer")
-        self.alignment_circle_text = QLabel("Aligment circle settings:")
+        # self.alignment_circle_checkbox = QCheckBox("Draw alignment circle on wafer")
+        # self.alignment_circle_text = QLabel("Aligment circle settings:")
 
-        self.alignment_circle_spinbox_dia_label = QLabel("Diameter (px):")
-        self.alignment_circle_spinbox_dia = QSpinBox()
-        self.alignment_circle_spinbox_dia.setRange(10, 2000)
-        self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia_label)
-        self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia)
+        # self.alignment_circle_spinbox_dia_label = QLabel("Diameter (px):")
+        # self.alignment_circle_spinbox_dia = QSpinBox()
+        # self.alignment_circle_spinbox_dia.setRange(10, 2000)
+        # self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia_label)
+        # self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia)
 
-        self.alignment_circle_spinbox_offset_x_label = QLabel("Offset X (px):")
-        self.alignment_circle_spinbox_offset_x = QSpinBox()
-        self.alignment_circle_spinbox_offset_x.setRange(-1000, 1000)
-        self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x_label)
-        self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x)
+        # self.alignment_circle_spinbox_offset_x_label = QLabel("Offset X (px):")
+        # self.alignment_circle_spinbox_offset_x = QSpinBox()
+        # self.alignment_circle_spinbox_offset_x.setRange(-1000, 1000)
+        # self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x_label)
+        # self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x)
 
-        self.alignment_circle_spinbox_offset_y_label = QLabel("Offset Y (px):")
-        self.alignment_circle_spinbox_offset_y = QSpinBox()
-        self.alignment_circle_spinbox_offset_y.setRange(-1000, 1000)
-        self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y_label)
-        self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y)
+        # self.alignment_circle_spinbox_offset_y_label = QLabel("Offset Y (px):")
+        # self.alignment_circle_spinbox_offset_y = QSpinBox()
+        # self.alignment_circle_spinbox_offset_y.setRange(-1000, 1000)
+        # self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y_label)
+        # self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y)
 
-        self.layout_circle.addLayout(self.layout_circle_dia)
-        self.layout_circle.addLayout(self.layout_circle_offset_x)
-        self.layout_circle.addLayout(self.layout_circle_offset_y)
+        # self.layout_circle.addLayout(self.layout_circle_dia)
+        # self.layout_circle.addLayout(self.layout_circle_offset_x)
+        # self.layout_circle.addLayout(self.layout_circle_offset_y)
         
 
         # Add widgets to RIGHT layout
@@ -288,10 +289,10 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_exposure.addWidget(self.exposure_STOP)
         self.layout_exposure.addWidget(self.exposure_START)
         self.layout_right.addLayout(self.layout_exposure)
-        self.layout_right.addWidget(self.alignment_svg_checkbox)
-        self.layout_right.addWidget(self.alignment_circle_checkbox)
-        self.layout_right.addWidget(self.alignment_circle_text)
-        self.layout_right.addLayout(self.layout_circle)
+        self.layout_right.addWidget(self.alignment_draw_checkbox)
+        # self.layout_right.addWidget(self.alignment_circle_checkbox)
+        # self.layout_right.addWidget(self.alignment_circle_text)
+        # self.layout_right.addLayout(self.layout_circle)
 
         # Add the three main sections to the top-level layout
         self.layout_top.addLayout(self.layout_left)
@@ -334,25 +335,28 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Start/stop buttons
         self.exposure_START.clicked.connect(self.confirmStart)
         self.exposure_STOP.clicked.connect(self.stopPhotolithography)
+        # Optional checkboxes
+        self.alignment_draw_checkbox.stateChanged.connect(self.update_images)
+        
 
     # Moses is working on this one, it blows up right now...
-    # def keyPressEvent(self, event):
-    #     key = event.key()
+    def keyPressEvent(self, event):
+        key = event.key()
 
-    #     if key == Qt.Key_Up:
-    #         gantry.moveMOTOR("Y+100")
-    #     elif key == Qt.Key_Down:
-    #         gantry.moveMOTOR("Y-100")
-    #     elif key == Qt.Key_Left:
-    #         gantry.moveMOTOR("X-100")
-    #     elif key == Qt.Key_Right:
-    #         gantry.moveMOTOR("X+100")
-    #     elif key == Qt.Key_PageUp:
-    #         gantry.moveMOTOR("Z+50")
-    #     elif key == Qt.Key_PageDown:
-    #         gantry.moveMOTOR("Z-50")
-    #     else:
-    #         super().keyPressEvent(event)
+        if key == Qt.Key_Up:
+            gantry.moveMOTOR("Y+100")
+        elif key == Qt.Key_Down:
+            gantry.moveMOTOR("Y-100")
+        elif key == Qt.Key_Left:
+            gantry.moveMOTOR("X-100")
+        elif key == Qt.Key_Right:
+            gantry.moveMOTOR("X+100")
+        elif key == Qt.Key_PageUp:
+            gantry.moveMOTOR("Z+50")
+        elif key == Qt.Key_PageDown:
+            gantry.moveMOTOR("Z-50")
+        else:
+            super().keyPressEvent(event)
 
     def update_UV_value(self):
         value = self.photo_slider_UV.value()
@@ -374,10 +378,13 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         selected_file = self.photo_cbox.currentText()
         config.PHOTO_FILE = os.path.join("png_images", selected_file)
         self.photo_text_file.setText(f'Image File: {config.PHOTO_FILE}')
-        # Update Align image
-        selected_file = self.assist_cbox.currentText()
-        config.ALIGNMENT_FILE = os.path.join("png_images", selected_file)
-        self.assist_text_file.setText(f'Image File: {config.ALIGNMENT_FILE}')
+        # Update Align image (if different)
+        if self.alignment_draw_checkbox.isChecked():
+            selected_file = self.assist_cbox.currentText()
+            config.ALIGNMENT_FILE = os.path.join("png_images", selected_file)
+            self.assist_text_file.setText(f'Image File: {config.ALIGNMENT_FILE}')
+        else:
+            config.ALIGNMENT_FILE = None
 
         # Remove the old pixmap item, add a newly calculated one
         self.DLP_preview_scene.removeItem(self.photo_and_align_graphics_item)
