@@ -163,7 +163,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         self.photo_text_UV = QLabel(f'UV LED Brightness: {config.BRIGHTNESS_UV}')
         self.photo_slider_UV = QSlider()
-        self.photo_slider_UV.setOrientation(Qt.Orientation.Vertical)
+        self.photo_slider_UV.setOrientation(Qt.Orientation.Horizontal)
         self.photo_slider_UV.setMinimum(0)
         self.photo_slider_UV.setMaximum(255)
         self.photo_slider_UV.setValue(config.BRIGHTNESS_UV)
@@ -179,14 +179,14 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Red and Green LED brightness sliders
         self.assist_text_RED = QLabel(f'Red LED Brightness: {config.BRIGHTNESS_RED}')
         self.assist_slider_RED = QSlider()
-        self.assist_slider_RED.setOrientation(Qt.Orientation.Vertical)
+        self.assist_slider_RED.setOrientation(Qt.Orientation.Horizontal)
         self.assist_slider_RED.setMinimum(0)
         self.assist_slider_RED.setMaximum(255)
         self.assist_slider_RED.setValue(config.BRIGHTNESS_RED)
 
         self.assist_text_GREEN = QLabel(f'Green LED Brightness: {config.BRIGHTNESS_GREEN}')
         self.assist_slider_GREEN = QSlider()
-        self.assist_slider_GREEN.setOrientation(Qt.Orientation.Vertical)
+        self.assist_slider_GREEN.setOrientation(Qt.Orientation.Horizontal)
         self.assist_slider_GREEN.setMinimum(0)
         self.assist_slider_GREEN.setMaximum(255)
         self.assist_slider_GREEN.setValue(config.BRIGHTNESS_GREEN)
