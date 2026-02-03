@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-=======
 # Updated 22:17
 
->>>>>>> jacob
 # Main GUI Window
 # This file runs the main window for the maskless photolithography process.
 # With the GUI, you can do the following:
@@ -63,20 +60,12 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QSizePolicy
 )
-<<<<<<< HEAD
-from PyQt6.QtSvgWidgets import QGraphicsSvgItem
-from PyQt6.QtCore import Qt, QSize, QRectF
-from PyQt6.QtGui import QResizeEvent, QBrush, QColor
-
-png_images = os.listdir("png_images")
-=======
 # from PyQt6.QtSvgWidgets import QGraphicsSvgItem
 from PyQt6.QtCore import Qt, QSize, QRectF
 from PyQt6.QtGui import QResizeEvent, QBrush, QColor
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 png_images = os.listdir(os.path.join(current_dir, "png_images"))
->>>>>>> jacob
 screens = QApplication.screens()
 
 class GraphicsView(QGraphicsView):
@@ -228,18 +217,16 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         self.DLP_preview_scene = QGraphicsScene()
         self.DLP_preview_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Complete blackout background
-<<<<<<< HEAD
-<<<<<<< HEAD
+
         self.photo_and_align_graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE) # Return a combined RGB image from photo and align layers
-=======
-=======
+
         self.DLP_preview_scene.setSceneRect(0, 0, config.LITHO_SIZE_PX_X//4, config.LITHO_SIZE_PX_Y//4)
->>>>>>> jacob
+
         self.photo_and_align_graphics_item = image_processing.add_images(
             os.path.join(current_dir, config.PHOTO_FILE), 
             os.path.join(current_dir, config.ALIGNMENT_FILE)
         ) # Return a combined RGB image from photo and align layers
->>>>>>> jacob
+
         self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
         self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
         self.DLP_preview_view.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)

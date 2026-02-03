@@ -1,17 +1,9 @@
-<<<<<<< HEAD
+
 # Used for testing live footage from the basler camera
 # for the maskless photolithography machine.
-<<<<<<< HEAD
-# The footage needs to be in the form of a PyQt5 widget.
-# Otherwise, this can be done with a simple OpenCV window.
-# Updated 1/20/2025 by S. Jacob Finch
-# 
-# Thanks to Google and 'eyllanesc' on stack overflow
-=======
 # The footage needs to be in the form of a PyQt6 widget.
 # Updated 1/26/2025 by S. Jacob Finch
->>>>>>> jacob
-=======
+
 # Used to see live footage from the basler camera of the maskless photolithography machine.
 # The footage needs to be retrieved using PyPylon and returned in the form of a PyQt6 widget.
 # Updated 1/31/2025 by S. Jacob Finch
@@ -24,19 +16,18 @@
 
 # To help with the rainbow-vomit problem, try making code that averages a few frames to smooth the RGB flicker.
 # Just increasing exposure time washes out the whole image, so this might be a better solution.
->>>>>>> jacob
+
 
 from PyQt6.QtWidgets import  QWidget, QLabel, QApplication
 from PyQt6.QtCore import QThread, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
-<<<<<<< HEAD
+
 import sys
-=======
+
 from pypylon import pylon
-<<<<<<< HEAD
->>>>>>> jacob
+
 import cv2
-=======
+
 import cv2, sys
 import numpy as np
 import config
@@ -58,7 +49,7 @@ try:
 except Exception as e:
     print(e)
     
->>>>>>> jacob
+
 
 class Thread(QThread):
     updatePixmap = pyqtSignal(QImage)
@@ -66,20 +57,18 @@ class Thread(QThread):
     def run(self):
         # Try to open the basler camera
         try:
-<<<<<<< HEAD
+
             # Index will vary based on system.
             # For a laptop, the built-in webcam is usually 0.
             # Sometimes it takes a few seconds to appear.
-<<<<<<< HEAD
+
             cap = cv2.VideoCapture(0) 
-=======
+
             cap = cv2.VideoCapture(camera) 
->>>>>>> jacob
-=======
+
             camera.Open()
             # The camera will continuously grab frames one by one
             camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
->>>>>>> jacob
         except Exception as e:
             print(f"Could not open camera. Exception: {e}")
             return

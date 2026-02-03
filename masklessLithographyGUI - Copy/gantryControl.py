@@ -1,9 +1,5 @@
 import tkinter as tk
-<<<<<<< HEAD
-from PIL import Image, ImageTk  # for logo display
-=======
 from PIL import Image #, ImageTk  # for logo display
->>>>>>> jacob
 from mcu_side import move_motor
 import os
 
