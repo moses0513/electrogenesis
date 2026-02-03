@@ -1,8 +1,8 @@
 # Enter parameters here:
 import os
 
-LITHO_SIZE_PX_X = 768  # Lithography image size in pixels (X direction)
-LITHO_SIZE_PX_Y = 768  # Lithography image size in pixels (Y direction)
+LITHO_SIZE_PX_X = 1280 # 768  # Lithography image size in pixels (X direction)
+LITHO_SIZE_PX_Y = 720 # 768  # Lithography image size in pixels (Y direction)
 
 PHOTO_FILE = 'png_images/25 Egen Logo (White).png' # Use relative path from main script folder
 ALIGNMENT_FILE = 'png_images/25 Egen Logo (White).png'

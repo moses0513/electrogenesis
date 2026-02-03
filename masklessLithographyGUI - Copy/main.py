@@ -35,7 +35,7 @@ _ Prevent dragging window into DLP or moving mouse onto it... Might get really t
 
 """
 
-import sys, os
+import sys, os, threading, time
 import config, image_processing, camera
 import gantryControl as gantry
 from PyQt6.QtWidgets import (
@@ -429,6 +429,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
     def startPhotolithography(self):
         print("Starting UV exposure...")
+        
         lithoWindow.DLP_scene = self.DLP_preview_scene
         # lithoWindow.DLP_scene = QGraphicsScene()
         # lithoWindow.DLP_scene.addItem(self.photo_and_align_graphics_item)
@@ -436,10 +437,18 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         lithoWindow.DLP_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         lithoWindow.DLP_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         lithoWindow.setCentralWidget(lithoWindow.DLP_view)
+        self.exposingThread = threading.Thread(target=self.timedStopPhotolithography)
+        self.exposingThread.start()
 
-    def stopPhotolithography(self):
-        print("STOPPING UV exposure.")
+    def timedStopPhotolithography(self):
+        time.sleep(self.exposure_spinbox.value())
+        # self.exposingThread.join()
+        self.stopPhotolithography()
+
+    def stopPhotolithography(self):           
         lithoWindow.blackout()
+        print("STOPPED UV exposure.")
+        
 
 class DLP():
     def __init__(self):
