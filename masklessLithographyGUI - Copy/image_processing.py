@@ -21,7 +21,10 @@ from PyQt6.QtGui import QPixmap, QImage
 def add_images(img_photo_path, img_align_path):
     
     img_photo = Image.open(img_photo_path).convert("RGB")
-    img_align = Image.open(img_align_path).convert("RGB")
+    if img_align_path is None:
+        img_align = img_photo
+    else:
+        img_align = Image.open(img_align_path).convert("RGB")
 
     img_photo = img_photo.resize(size=(config.LITHO_SIZE_PX_X, config.LITHO_SIZE_PX_Y))
     if img_photo.size != img_align.size:
@@ -40,7 +43,12 @@ def add_images(img_photo_path, img_align_path):
     # Add arrays and clip values to stay within the valid 0-255 range
     added_arr1 = np.clip(arr1 + [-255, -255, -(255-config.BRIGHTNESS_UV)], 0, 255).astype(np.uint8) # Only keep blue
     added_arr2 = np.clip(arr2 + [-(255-config.BRIGHTNESS_RED), -(255-config.BRIGHTNESS_GREEN), -255], 0, 255).astype(np.uint8) # Only keep red
-    added_arr = np.clip(added_arr1 + added_arr2, 0, 255).astype(np.uint8)
+    
+    # Bug fix for "draw aligmnet image checkbox" unchecked
+    if img_align_path is None:
+        added_arr = added_arr1
+    else:
+        added_arr = np.clip(added_arr1 + added_arr2, 0, 255).astype(np.uint8)
 
     # Convert back to PIL Image and then to QImage
     blended_img = Image.fromarray(added_arr, 'RGB')

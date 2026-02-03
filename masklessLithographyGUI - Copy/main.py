@@ -140,6 +140,8 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Camera feed and stage controller
         self.camera_label = QLabel("Live Camera Footage")
         self.camFeed = camera.CameraFeed()
+        self.camFeed.setFixedSize(640, 480)
+        
         self.stage_controller_label = QLabel("Stage Controller")
         self.stage_x_up = QPushButton("X+")
         self.stage_x_down = QPushButton("X-")
@@ -227,8 +229,12 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.DLP_preview_scene = QGraphicsScene()
         self.DLP_preview_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Complete blackout background
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.photo_and_align_graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE) # Return a combined RGB image from photo and align layers
 =======
+=======
+        self.DLP_preview_scene.setSceneRect(0, 0, config.LITHO_SIZE_PX_X//4, config.LITHO_SIZE_PX_Y//4)
+>>>>>>> jacob
         self.photo_and_align_graphics_item = image_processing.add_images(
             os.path.join(current_dir, config.PHOTO_FILE), 
             os.path.join(current_dir, config.ALIGNMENT_FILE)
@@ -236,7 +242,10 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 >>>>>>> jacob
         self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
         self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
-
+        self.DLP_preview_view.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        # self.DLP_preview_view.setFixedSize(640, 640)
+        self.DLP_preview_view.scale(3, 3)
+        self.DLP_preview_view.fitInView(self.DLP_preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         
 
         # Output resolution:
@@ -259,33 +268,34 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_START.setStyleSheet("background-color: green; color: white; font-weight: bold;")
 
         # Alignment SVG layer
-        self.alignment_svg_checkbox = QCheckBox("Draw alignment image on wafer")
+        self.alignment_draw_checkbox = QCheckBox("Draw alignment image on wafer")
+        self.alignment_draw_checkbox.setChecked(True)
 
         # Alignment circle layer
-        self.alignment_circle_checkbox = QCheckBox("Draw alignment circle on wafer")
-        self.alignment_circle_text = QLabel("Aligment circle settings:")
+        # self.alignment_circle_checkbox = QCheckBox("Draw alignment circle on wafer")
+        # self.alignment_circle_text = QLabel("Aligment circle settings:")
 
-        self.alignment_circle_spinbox_dia_label = QLabel("Diameter (px):")
-        self.alignment_circle_spinbox_dia = QSpinBox()
-        self.alignment_circle_spinbox_dia.setRange(10, 2000)
-        self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia_label)
-        self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia)
+        # self.alignment_circle_spinbox_dia_label = QLabel("Diameter (px):")
+        # self.alignment_circle_spinbox_dia = QSpinBox()
+        # self.alignment_circle_spinbox_dia.setRange(10, 2000)
+        # self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia_label)
+        # self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia)
 
-        self.alignment_circle_spinbox_offset_x_label = QLabel("Offset X (px):")
-        self.alignment_circle_spinbox_offset_x = QSpinBox()
-        self.alignment_circle_spinbox_offset_x.setRange(-1000, 1000)
-        self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x_label)
-        self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x)
+        # self.alignment_circle_spinbox_offset_x_label = QLabel("Offset X (px):")
+        # self.alignment_circle_spinbox_offset_x = QSpinBox()
+        # self.alignment_circle_spinbox_offset_x.setRange(-1000, 1000)
+        # self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x_label)
+        # self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x)
 
-        self.alignment_circle_spinbox_offset_y_label = QLabel("Offset Y (px):")
-        self.alignment_circle_spinbox_offset_y = QSpinBox()
-        self.alignment_circle_spinbox_offset_y.setRange(-1000, 1000)
-        self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y_label)
-        self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y)
+        # self.alignment_circle_spinbox_offset_y_label = QLabel("Offset Y (px):")
+        # self.alignment_circle_spinbox_offset_y = QSpinBox()
+        # self.alignment_circle_spinbox_offset_y.setRange(-1000, 1000)
+        # self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y_label)
+        # self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y)
 
-        self.layout_circle.addLayout(self.layout_circle_dia)
-        self.layout_circle.addLayout(self.layout_circle_offset_x)
-        self.layout_circle.addLayout(self.layout_circle_offset_y)
+        # self.layout_circle.addLayout(self.layout_circle_dia)
+        # self.layout_circle.addLayout(self.layout_circle_offset_x)
+        # self.layout_circle.addLayout(self.layout_circle_offset_y)
         
 
         # Add widgets to RIGHT layout
@@ -297,17 +307,18 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_exposure.addWidget(self.exposure_STOP)
         self.layout_exposure.addWidget(self.exposure_START)
         self.layout_right.addLayout(self.layout_exposure)
-        self.layout_right.addWidget(self.alignment_svg_checkbox)
-        self.layout_right.addWidget(self.alignment_circle_checkbox)
-        self.layout_right.addWidget(self.alignment_circle_text)
-        self.layout_right.addLayout(self.layout_circle)
+        self.layout_right.addWidget(self.alignment_draw_checkbox)
+        # self.layout_right.addWidget(self.alignment_circle_checkbox)
+        # self.layout_right.addWidget(self.alignment_circle_text)
+        # self.layout_right.addLayout(self.layout_circle)
 
         # Add the three main sections to the top-level layout
-        self.layout_top.addLayout(self.layout_left, 1)
-        self.layout_top.addLayout(self.layout_middle, 1)
-        self.layout_top.addLayout(self.layout_right, 1)
+        self.layout_top.addLayout(self.layout_left)
+        self.layout_top.addLayout(self.layout_middle)
+        self.layout_top.addLayout(self.layout_right)
         # self.layout_top.insertSpacerItem(1, QSizePolicy.Expanding)
 
+        # The MAIN widget that holds everything
         self.widget = QWidget()
         self.widget.setLayout(self.layout_top)
         self.setCentralWidget(self.widget)
@@ -342,7 +353,11 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Start/stop buttons
         self.exposure_START.clicked.connect(self.confirmStart)
         self.exposure_STOP.clicked.connect(self.stopPhotolithography)
+        # Optional checkboxes
+        self.alignment_draw_checkbox.stateChanged.connect(self.update_images)
+        
 
+    # Moses is working on this one, it blows up right now...
     def keyPressEvent(self, event):
         key = event.key()
 
@@ -381,10 +396,13 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         selected_file = self.photo_cbox.currentText()
         config.PHOTO_FILE = os.path.join("png_images", selected_file)
         self.photo_text_file.setText(f'Image File: {config.PHOTO_FILE}')
-        # Update Align image
-        selected_file = self.assist_cbox.currentText()
-        config.ALIGNMENT_FILE = os.path.join("png_images", selected_file)
-        self.assist_text_file.setText(f'Image File: {config.ALIGNMENT_FILE}')
+        # Update Align image (if different)
+        if self.alignment_draw_checkbox.isChecked():
+            selected_file = self.assist_cbox.currentText()
+            config.ALIGNMENT_FILE = os.path.join("png_images", selected_file)
+            self.assist_text_file.setText(f'Image File: {config.ALIGNMENT_FILE}')
+        else:
+            config.ALIGNMENT_FILE = None
 
         # Remove the old pixmap item, add a newly calculated one
         self.DLP_preview_scene.removeItem(self.photo_and_align_graphics_item)
@@ -444,11 +462,14 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 class DLP():
     def __init__(self):
         try: # Try to connect to the DLP as the second display.
-            self.screen_geometry = QApplication.screens()[1].geometry()
+            self.screen = QApplication.screens()[1]
+            self.screen_geometry = self.screen.geometry()
+            for s in QApplication.screens():
+                print(s.name())
+                print(s.geometry())
             self.width = self.screen_geometry.width()
             self.height = self.screen_geometry.height()
             self.connected = True
-            print(self.screen_geometry)
         except IndexError:
             self.connected = False
             self.width = 0
@@ -462,7 +483,7 @@ class DLP():
             print(e)
 
 class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
-    def __init__(self, parentWindow):
+    def __init__(self):
         super().__init__()
         self.setWindowTitle("Image")
 
@@ -470,7 +491,6 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
         if DLP.connected:
             try:
                 self.setGeometry(DLP.screen_geometry)
-                self.showFullScreen()
                 if DLP.width < config.LITHO_SIZE_PX_X or DLP.height < config.LITHO_SIZE_PX_Y:
                     print("Warning: Second display resolution is smaller than lithography image size.")
                     print("Cropping images to:")
@@ -488,7 +508,7 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
 
     def blackout(self):
         self.blackout_scene = QGraphicsScene()
-        self.blackout_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Total darkness *evil laugh*
+        self.blackout_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Total darkness.... *evil laugh*
         self.blackout_view = QGraphicsView(self.blackout_scene)
         self.blackout_view.setAutoFillBackground(True)
         self.blackout_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -503,9 +523,11 @@ DLP = DLP()
 mainWindow = MainWindow()
 mainWindow.show()
 
-lithoWindow = LithoWindow(mainWindow)
+lithoWindow = LithoWindow() # MAKE IT NOT A CHILD OF MAIN WINDOW????? <- will vars still work?
 if DLP.connected:
     lithoWindow.show()
+    # lithoWindow.move(DLP.screen_geometry.topLeft())
+    mainWindow.showNormal()
 
 # Note after doing all this: There's probably a better way to do all this. (P_P)
 
