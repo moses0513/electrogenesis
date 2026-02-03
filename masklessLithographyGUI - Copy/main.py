@@ -331,7 +331,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.assist_slider_GREEN.sliderReleased.connect(self.update_GREEN_value)
         self.photo_slider_UV.valueChanged.connect(lambda: self.photo_text_UV.setText(f'UV LED Brightness: {self.photo_slider_UV.value()}')) # Update text while moving
         self.assist_slider_RED.valueChanged.connect(lambda: self.assist_text_RED.setText(f'Red LED Brightness: {self.assist_slider_RED.value()}'))
-        self.assist_slider_GREEN.valueChanged.connect(lambda: self.assist_text_GREEN.setText(f'Green LED Brightness: {self.assist_slider_RED.value()}'))
+        self.assist_slider_GREEN.valueChanged.connect(lambda: self.assist_text_GREEN.setText(f'Green LED Brightness: {self.assist_slider_GREEN.value()}'))
         # Start/stop buttons
         self.exposure_START.clicked.connect(self.confirmStart)
         self.exposure_STOP.clicked.connect(self.stopPhotolithography)
