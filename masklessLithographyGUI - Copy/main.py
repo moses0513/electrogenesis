@@ -1,5 +1,3 @@
-# Updated 22:17
-
 # Main GUI Window
 # This file runs the main window for the maskless photolithography process.
 # With the GUI, you can do the following:
@@ -23,9 +21,7 @@ X Fix broken preview (happened right after adding DLP_preview_view to second dis
 _ Prevent scrolling on DLP window
 X Dialog box to confirm start or cancel
 X Update aligment assist layers on second monitor 
-_ Add circle asset with adjustable dia, x-offset and y-offset
 X Color filtering
-_ Adjustable position of photo/align layers
 _ Runtime dialog with stopwatch, goal
 _ Fix config values not updating (images do not crop. use a different strategy for global vars? re-grab the config file?)
 _ Add a displayAlignmentImage() function that connects to the "Draw alignment image on wafer" checkbox
@@ -61,7 +57,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy
 )
 # from PyQt6.QtSvgWidgets import QGraphicsSvgItem
-from PyQt6.QtCore import Qt, QSize, QRectF
+from PyQt6.QtCore import Qt, QSize, QRectF, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QResizeEvent, QBrush, QColor
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -94,6 +90,7 @@ class GraphicsView(QGraphicsView):
     
 
 class MainWindow(QMainWindow): # Main GUI for controlling photolithography settings and image
+    @pyqtSlot(QThread) # Designate this as a slot for threading
     def __init__(self):
         super().__init__()
         self.setWindowTitle("EGEN Photolithography Settings")
@@ -224,10 +221,11 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         ) # Return a combined RGB image from photo and align layers
         self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
         self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
-        self.DLP_preview_view.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self.DLP_preview_view.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        # self.DLP_preview_view.heightForWidth(config.LITHO_SIZE_PX_Y//config.LITHO_SIZE_PX_X*300)
         # self.DLP_preview_view.setFixedSize(640, 640)
-        self.DLP_preview_view.scale(3, 3)
-        self.DLP_preview_view.fitInView(self.DLP_preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        # self.DLP_preview_view.scale(3, 3)
+        # self.DLP_preview_view.fitInView(self.DLP_preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatioByExpanding)
         
 
         # Output resolution:
@@ -249,7 +247,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_START = QPushButton("START")
         self.exposure_START.setStyleSheet("background-color: green; color: white; font-weight: bold;")
 
-        # Alignment SVG layer
+        # Alignment PNG layer
         self.alignment_draw_checkbox = QCheckBox("Draw alignment image on wafer")
         self.alignment_draw_checkbox.setChecked(True)
 
@@ -417,7 +415,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         if button == confirmButton:
             self.startPhotolithography()
         if button == cancelButton:
-            print("Canceled.")
+            print("Canceled Photolithography.")
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -428,7 +426,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         #       Otherwise, it will emit UV light when the splash screen (or "No-signal" screen) takes over.
 
     def startPhotolithography(self):
-        print("Starting UV exposure...")
+        print("STARTING UV EXPOSURE...")
         
         lithoWindow.DLP_scene = self.DLP_preview_scene
         # lithoWindow.DLP_scene = QGraphicsScene()
@@ -436,28 +434,32 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         lithoWindow.DLP_view = QGraphicsView(lithoWindow.DLP_scene, self)
         lithoWindow.DLP_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         lithoWindow.DLP_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        lithoWindow.DLP_view.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         lithoWindow.setCentralWidget(lithoWindow.DLP_view)
-        self.exposingThread = threading.Thread(target=self.timedStopPhotolithography)
-        self.exposingThread.start()
 
-    def timedStopPhotolithography(self):
-        time.sleep(self.exposure_spinbox.value())
-        # self.exposingThread.join()
-        self.stopPhotolithography()
+        self.exposingThread = timedExposureThread(self.exposure_spinbox.value())
+        self.exposingThread.endLitho.connect(self.stopPhotolithography)
+        self.exposingThread.start()
 
     def stopPhotolithography(self):           
         lithoWindow.blackout()
-        print("STOPPED UV exposure.")
-        
+        print("STOPPED UV EXPOSURE.")
+
+class timedExposureThread(QThread):
+    def __init__(self, EXPOSURE_TIME):
+        super().__init__()
+        self.EXPOSURE_TIME = EXPOSURE_TIME
+    endLitho = pyqtSignal()
+    def run(self):
+        time.sleep(self.EXPOSURE_TIME)
+        self.endLitho.emit()
+
 
 class DLP():
     def __init__(self):
         try: # Try to connect to the DLP as the second display.
             self.screen = QApplication.screens()[1]
             self.screen_geometry = self.screen.geometry()
-            for s in QApplication.screens():
-                print(s.name())
-                print(s.geometry())
             self.width = self.screen_geometry.width()
             self.height = self.screen_geometry.height()
             self.connected = True
@@ -465,10 +467,6 @@ class DLP():
             self.connected = False
             self.width = 0
             self.height = 0
-            # self.screen_geometry = QApplication.screens()[0].geometry()
-            # self.width = self.screen_geometry.width()
-            # self.height = self.screen_geometry.height()
-            # print("Only one display detected; showing image on primary display.")
             print("No second display detected. Running GUI only.")
         except Exception as e:
             print(e)
@@ -512,6 +510,7 @@ app = QApplication(sys.argv)
 
 DLP = DLP()
 mainWindow = MainWindow()
+mainWindow.setGeometry(20, 60, 800, 600)
 mainWindow.show()
 
 lithoWindow = LithoWindow() # MAKE IT NOT A CHILD OF MAIN WINDOW????? <- will vars still work?

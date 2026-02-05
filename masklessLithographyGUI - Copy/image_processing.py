@@ -26,7 +26,8 @@ def add_images(img_photo_path, img_align_path):
     else:
         img_align = Image.open(img_align_path).convert("RGB")
 
-    img_photo = img_photo.resize(size=(config.LITHO_SIZE_PX_X, config.LITHO_SIZE_PX_Y))
+    scale = min(config.LITHO_SIZE_PX_X / img_photo.width, config.LITHO_SIZE_PX_Y / img_photo.height)    
+    img_photo = img_photo.resize(size=(int(img_photo.width * scale), int(img_photo.height * scale)), resample=Image.Resampling.NEAREST)
     if img_photo.size != img_align.size:
         img_align = img_align.resize(img_photo.size)
 
