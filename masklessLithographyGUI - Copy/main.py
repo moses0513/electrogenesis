@@ -380,14 +380,19 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         if self.alignment_draw_checkbox.isChecked():
             selected_file = self.assist_cbox.currentText()
             config.ALIGNMENT_FILE = os.path.join("png_images", selected_file)
-            self.assist_text_file.setText(f'Image File: {config.ALIGNMENT_FILE}')
+            self.assist_text_file.setText(f'Image File: {config.ALIGNMENT_FILE}')# Add the align image to the actual DLP_scene so we see it on the camera
+            lithoWindow.align_graphics_item = image_processing.align_image(config.ALIGNMENT_FILE)
+            lithoWindow.DLP_scene.addItem(lithoWindow.align_graphics_item)
         else:
             config.ALIGNMENT_FILE = None
+            
 
         # Remove the old pixmap item, add a newly calculated one
         self.DLP_preview_scene.removeItem(self.photo_and_align_graphics_item)
         self.photo_and_align_graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE)
         self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
+        
+        
     
     def confirmStart(self):
         warning = QMessageBox()
@@ -423,19 +428,15 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
     def closeEvent(self, a0):
         exit() # Close the whole program if the main window is closed.
         # NOTE: The default splash of the DLP MUST be a black screen, or something with NO blue.
-        #       Otherwise, it will emit UV light when the splash screen (or "No-signal" screen) takes over.
+        #       Otherwise, it will emit UV light when the on-board splash screen (aka "No-signal" screen) takes over.
 
     def startPhotolithography(self):
         print("STARTING UV EXPOSURE...")
         
-        lithoWindow.DLP_scene = self.DLP_preview_scene
-        # lithoWindow.DLP_scene = QGraphicsScene()
-        # lithoWindow.DLP_scene.addItem(self.photo_and_align_graphics_item)
-        lithoWindow.DLP_view = QGraphicsView(lithoWindow.DLP_scene, self)
-        lithoWindow.DLP_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        lithoWindow.DLP_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        lithoWindow.DLP_view.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        lithoWindow.setCentralWidget(lithoWindow.DLP_view)
+        # Add the image to be exposed
+        lithoWindow.DLP_scene.removeItem(lithoWindow.photo_and_align_graphics_item)
+        lithoWindow.photo_and_align_graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE)
+        lithoWindow.DLP_scene.addItem(lithoWindow.photo_and_align_graphics_item)
 
         self.exposingThread = timedExposureThread(self.exposure_spinbox.value())
         self.exposingThread.endLitho.connect(self.stopPhotolithography)
@@ -489,6 +490,14 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
                     print(f"\tWidth: {config.LITHO_SIZE_PX_X} px")
                     print(f"\tHeight: {config.LITHO_SIZE_PX_Y} px")
 
+                self.DLP_scene = QGraphicsScene()
+                self.photo_and_align_graphics_item = image_processing.align_image(config.ALIGNMENT_FILE)
+                self.DLP_scene.addItem(self.photo_and_align_graphics_item)
+                self.DLP_view = QGraphicsView(self.DLP_scene, self)
+                self.DLP_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                self.DLP_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                self.DLP_view.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+                self.setCentralWidget(self.DLP_view)
             except Exception as e:
                 print(e)
         

@@ -1,0 +1,13 @@
+✓ Exposure Timer
+Show align image when the box is checked
+UV LED PCB -> get, make, install
+UV Enclosure
+
+Realign optics with DLP (redesign the flange mount)
+Fix Gantry (Z-axis bearing broke)
+Run stepper motors from GUI
+Read magnetic encoder positions in GUI
+Add path configurations for stepper motors to follow (e.g. the "draw a circle" function from Moses' website GUI)
+    -> Make a separate tab for this, switch between "Path" and "Image" tabs (Sliders replaced with path configuration)
+✓ Grayscale Option
+Diagnose "scan line" problem
