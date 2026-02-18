@@ -31,8 +31,8 @@ _ Prevent dragging window into DLP or moving mouse onto it... Might get really t
 
 """
 
-import sys, os, threading, time
-import config, image_processing, camera
+import sys, os, time
+import config, image_processing, camera, stage_controller
 import gantryControl as gantry
 from PyQt6.QtWidgets import (
     QApplication, 
@@ -114,7 +114,6 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_left = QVBoxLayout()
         self.layout_middle = QVBoxLayout()
         self.layout_right = QVBoxLayout()
-        self.layout_stage_controller = QGridLayout()
         self.layout_exposure = QHBoxLayout()
         self.layout_circle = QHBoxLayout()
         self.layout_circle_dia = QVBoxLayout()
@@ -127,85 +126,14 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.camera_label = QLabel("Live Camera Footage")
         self.camFeed = camera.CameraFeed()
         self.camFeed.setFixedSize(640, 480)
-        
-        self.stage_controller_label = QLabel("Stage Controller")
-        self.stage_x_up = QPushButton("X+")
-        self.stage_x_down = QPushButton("X-")
-        self.stage_y_up = QPushButton("Y+")
-        self.stage_y_down = QPushButton("Y-")
-        self.stage_z_up = QPushButton("Z+")
-        self.stage_z_down = QPushButton("Z-")
-        self.stage_datum = QPushButton("Datum")
 
         self.layout_left.addWidget(self.camFeed)
-        self.layout_left.addLayout(self.layout_stage_controller)
-        self.layout_stage_controller.addWidget(self.stage_x_up, 1, 3)
-        self.layout_stage_controller.addWidget(self.stage_x_down, 1, 0)
-        self.layout_stage_controller.addWidget(self.stage_y_up, 0, 1,)
-        self.layout_stage_controller.addWidget(self.stage_y_down, 2, 1)
-        self.layout_stage_controller.addWidget(self.stage_z_up, 0, 3)
-        self.layout_stage_controller.addWidget(self.stage_z_down, 2, 3)
-        self.layout_stage_controller.addWidget(self.stage_datum, 1, 1)
-
 
         # MIDDLE
-        # Photolithography settings (outputs to UV LEDs)
-        self.photo_text_title = QLabel("Photolithography Settings")
-        QLabel.setAlignment(self.photo_text_title, Qt.AlignmentFlag.AlignCenter)
-
-        self.photo_text_file = QLabel(f'Photolithography File: {config.PHOTO_FILE}')
-        self.photo_cbox = QComboBox()
-        self.photo_cbox.addItems(png_images)
-        self.photo_cbox.setCurrentIndex(1)
-
-        self.photo_text_UV = QLabel(f'UV LED Brightness: {config.BRIGHTNESS_UV}')
-        self.photo_slider_UV = QSlider()
-        self.photo_slider_UV.setOrientation(Qt.Orientation.Horizontal)
-        self.photo_slider_UV.setMinimum(0)
-        self.photo_slider_UV.setMaximum(255)
-        self.photo_slider_UV.setValue(config.BRIGHTNESS_UV)
-
-        # Alignment layer settings (can output to Red or Green LEDs)
-        self.assist_text_title = QLabel("Alignment Settings")
-        QLabel.setAlignment(self.assist_text_title, Qt.AlignmentFlag.AlignCenter)
-        self.assist_text_file = QLabel(f'Image File: {config.PHOTO_FILE}')
-        self.assist_cbox = QComboBox()
-        self.assist_cbox.addItems(png_images)
-        self.assist_cbox.setCurrentIndex(1)
-
-        # Red and Green LED brightness sliders
-        self.assist_text_RED = QLabel(f'Red LED Brightness: {config.BRIGHTNESS_RED}')
-        self.assist_slider_RED = QSlider()
-        self.assist_slider_RED.setOrientation(Qt.Orientation.Horizontal)
-        self.assist_slider_RED.setMinimum(0)
-        self.assist_slider_RED.setMaximum(255)
-        self.assist_slider_RED.setValue(config.BRIGHTNESS_RED)
-
-        self.assist_text_GREEN = QLabel(f'Green LED Brightness: {config.BRIGHTNESS_GREEN}')
-        self.assist_slider_GREEN = QSlider()
-        self.assist_slider_GREEN.setOrientation(Qt.Orientation.Horizontal)
-        self.assist_slider_GREEN.setMinimum(0)
-        self.assist_slider_GREEN.setMaximum(255)
-        self.assist_slider_GREEN.setValue(config.BRIGHTNESS_GREEN)
-
-        self.spacer = QSpacerItem(40, 40)
-
-        # Add widgets to MIDDLE layout
-        self.layout_middle.addWidget(self.photo_text_title)
-        self.layout_middle.addSpacerItem(self.spacer)
-        self.layout_middle.addWidget(self.photo_text_file)
-        self.layout_middle.addWidget(self.photo_cbox)
-        self.layout_middle.addWidget(self.photo_text_UV)
-        self.layout_middle.addWidget(self.photo_slider_UV)
-        self.layout_middle.addWidget(self.assist_text_title)
-        self.layout_middle.addWidget(self.assist_text_file)
-        self.layout_middle.addWidget(self.assist_cbox)
-        self.layout_middle.addWidget(self.assist_text_RED)
-        self.layout_middle.addWidget(self.assist_slider_RED)
-        self.layout_middle.addWidget(self.assist_text_GREEN)
-        self.layout_middle.addWidget(self.assist_slider_GREEN)
-        self.layout_middle.addSpacerItem(self.spacer)
-
+        # Stage controller for the stepper motors and magnetic encoders
+        self.stage_controller = stage_controller.StageController()
+        self.layout_middle.addWidget(self.stage_controller)
+        
         # RIGHT
         # Photolithography preview
         # Make a miniature scene that replicates the DLP output
@@ -291,6 +219,66 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # self.layout_right.addWidget(self.alignment_circle_checkbox)
         # self.layout_right.addWidget(self.alignment_circle_text)
         # self.layout_right.addLayout(self.layout_circle)
+        
+        
+        # Photolithography settings (outputs to UV LEDs)
+        self.photo_text_title = QLabel("Photolithography Settings")
+        QLabel.setAlignment(self.photo_text_title, Qt.AlignmentFlag.AlignCenter)
+
+        self.photo_text_file = QLabel(f'Photolithography File: {config.PHOTO_FILE}')
+        self.photo_cbox = QComboBox()
+        self.photo_cbox.addItems(png_images)
+        self.photo_cbox.setCurrentIndex(1)
+
+        self.photo_text_UV = QLabel(f'UV LED Brightness: {config.BRIGHTNESS_UV}')
+        self.photo_slider_UV = QSlider()
+        self.photo_slider_UV.setOrientation(Qt.Orientation.Horizontal)
+        self.photo_slider_UV.setMinimum(0)
+        self.photo_slider_UV.setMaximum(255)
+        self.photo_slider_UV.setValue(config.BRIGHTNESS_UV)
+
+        # Alignment layer settings (can output to Red or Green LEDs)
+        self.assist_text_title = QLabel("Alignment Settings")
+        QLabel.setAlignment(self.assist_text_title, Qt.AlignmentFlag.AlignCenter)
+        self.assist_text_file = QLabel(f'Image File: {config.PHOTO_FILE}')
+        self.assist_cbox = QComboBox()
+        self.assist_cbox.addItems(png_images)
+        self.assist_cbox.setCurrentIndex(1)
+
+        # Red and Green LED brightness sliders
+        self.assist_text_RED = QLabel(f'Red LED Brightness: {config.BRIGHTNESS_RED}')
+        self.assist_slider_RED = QSlider()
+        self.assist_slider_RED.setOrientation(Qt.Orientation.Horizontal)
+        self.assist_slider_RED.setMinimum(0)
+        self.assist_slider_RED.setMaximum(255)
+        self.assist_slider_RED.setValue(config.BRIGHTNESS_RED)
+
+        self.assist_text_GREEN = QLabel(f'Green LED Brightness: {config.BRIGHTNESS_GREEN}')
+        self.assist_slider_GREEN = QSlider()
+        self.assist_slider_GREEN.setOrientation(Qt.Orientation.Horizontal)
+        self.assist_slider_GREEN.setMinimum(0)
+        self.assist_slider_GREEN.setMaximum(255)
+        self.assist_slider_GREEN.setValue(config.BRIGHTNESS_GREEN)
+
+        self.spacer = QSpacerItem(40, 40)
+
+        # Add Photolithography widgets to layout
+        self.layout_right.addWidget(self.photo_text_title)
+        self.layout_right.addSpacerItem(self.spacer)
+        self.layout_right.addWidget(self.photo_text_file)
+        self.layout_right.addWidget(self.photo_cbox)
+        self.layout_right.addWidget(self.photo_text_UV)
+        self.layout_right.addWidget(self.photo_slider_UV)
+        self.layout_right.addWidget(self.assist_text_title)
+        self.layout_right.addWidget(self.assist_text_file)
+        self.layout_right.addWidget(self.assist_cbox)
+        self.layout_right.addWidget(self.assist_text_RED)
+        self.layout_right.addWidget(self.assist_slider_RED)
+        self.layout_right.addWidget(self.assist_text_GREEN)
+        self.layout_right.addWidget(self.assist_slider_GREEN)
+        self.layout_right.addSpacerItem(self.spacer)
+
+        
 
         # Add the three main sections to the top-level layout
         self.layout_top.addLayout(self.layout_left)
@@ -304,21 +292,6 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.setCentralWidget(self.widget)
 
         ############## Button Bindings ##############
-        # Gantry controller
-        self.stage_x_up.clicked.connect(lambda: gantry.moveMOTOR("X+100"))
-        self.stage_x_down.clicked.connect(lambda: gantry.moveMOTOR("X-100"))
-        self.stage_y_up.clicked.connect(lambda: gantry.moveMOTOR("Y+100"))
-        self.stage_y_down.clicked.connect(lambda: gantry.moveMOTOR("Y-100"))
-        self.stage_z_up.clicked.connect(lambda: gantry.moveMOTOR("Z+100"))
-        self.stage_z_down.clicked.connect(lambda: gantry.moveMOTOR("Z-100"))
-        self.stage_datum.clicked.connect(lambda: print("No function connected."))
-        # KEYBOARD SHORTCUTS
-        # app.bind("<Up>", lambda: gantry.moveMOTOR("Y+100"))
-        # app.bind("<Down>", lambda: gantry.moveMOTOR("Y-100"))
-        # app.bind("<Left>", lambda: gantry.moveMOTOR("X-100"))
-        # app.bind("<Right>", lambda: gantry.moveMOTOR("X+100"))
-        # app.bind("<Prior>", lambda: gantry.moveMOTOR("Z+50"))   # Page Up
-        # app.bind("<Next>", lambda: gantry.moveMOTOR("Z-50"))    # Page Down
 
         # Combo boxes
         self.photo_cbox.currentIndexChanged.connect(self.update_images)
