@@ -5,8 +5,7 @@
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QPushButton, QLabel, QGroupBox, QSpinBox, QSlider,
-    QApplication
+    QPushButton, QLabel, QGroupBox, QSpinBox, QSlider
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QFont
@@ -357,9 +356,3 @@ class StageController(QWidget):
             self.zero_position()
         else:
             super().keyPressEvent(event)
-
-
-app = QApplication([])
-controller = StageController()
-controller.show()
-app.exec()

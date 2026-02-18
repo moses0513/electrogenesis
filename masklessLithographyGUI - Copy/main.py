@@ -107,18 +107,14 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         # GUI is layed out as follows:
         # Three sections, left, middle, and right
-        # Left: Live camera footage, stage controller
-        # Middle: Maskless lithography settings, Visual aligment assist settings
-        # Right: Maskless lithography preview, Toggle circle color selectors
+        # Left: Live camera footage
+        # Middle: Stage controller
+        # Right: Maskless lithography preview, Maskless lithography settings, Aligment image settings
         self.layout_top = QHBoxLayout()
         self.layout_left = QVBoxLayout()
         self.layout_middle = QVBoxLayout()
         self.layout_right = QVBoxLayout()
         self.layout_exposure = QHBoxLayout()
-        self.layout_circle = QHBoxLayout()
-        self.layout_circle_dia = QVBoxLayout()
-        self.layout_circle_offset_x = QVBoxLayout()
-        self.layout_circle_offset_y = QVBoxLayout()
         self.layout_svg_preview = QStackedLayout()
 
         # LEFT
@@ -177,34 +173,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         # Alignment PNG layer
         self.alignment_draw_checkbox = QCheckBox("Draw alignment image on wafer")
-        self.alignment_draw_checkbox.setChecked(True)
-
-        # Alignment circle layer
-        # self.alignment_circle_checkbox = QCheckBox("Draw alignment circle on wafer")
-        # self.alignment_circle_text = QLabel("Aligment circle settings:")
-
-        # self.alignment_circle_spinbox_dia_label = QLabel("Diameter (px):")
-        # self.alignment_circle_spinbox_dia = QSpinBox()
-        # self.alignment_circle_spinbox_dia.setRange(10, 2000)
-        # self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia_label)
-        # self.layout_circle_dia.addWidget(self.alignment_circle_spinbox_dia)
-
-        # self.alignment_circle_spinbox_offset_x_label = QLabel("Offset X (px):")
-        # self.alignment_circle_spinbox_offset_x = QSpinBox()
-        # self.alignment_circle_spinbox_offset_x.setRange(-1000, 1000)
-        # self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x_label)
-        # self.layout_circle_offset_x.addWidget(self.alignment_circle_spinbox_offset_x)
-
-        # self.alignment_circle_spinbox_offset_y_label = QLabel("Offset Y (px):")
-        # self.alignment_circle_spinbox_offset_y = QSpinBox()
-        # self.alignment_circle_spinbox_offset_y.setRange(-1000, 1000)
-        # self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y_label)
-        # self.layout_circle_offset_y.addWidget(self.alignment_circle_spinbox_offset_y)
-
-        # self.layout_circle.addLayout(self.layout_circle_dia)
-        # self.layout_circle.addLayout(self.layout_circle_offset_x)
-        # self.layout_circle.addLayout(self.layout_circle_offset_y)
-        
+        self.alignment_draw_checkbox.setChecked(True)        
 
         # Add widgets to RIGHT layout
         self.layout_right.addWidget(self.preview_text_title)
@@ -216,9 +185,6 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_exposure.addWidget(self.exposure_START)
         self.layout_right.addLayout(self.layout_exposure)
         self.layout_right.addWidget(self.alignment_draw_checkbox)
-        # self.layout_right.addWidget(self.alignment_circle_checkbox)
-        # self.layout_right.addWidget(self.alignment_circle_text)
-        # self.layout_right.addLayout(self.layout_circle)
         
         
         # Photolithography settings (outputs to UV LEDs)
