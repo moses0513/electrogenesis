@@ -1,6 +1,6 @@
 ✓ Exposure Timer
 Show align image when the box is checked
-UV LED PCB -> get, make, install
+UV LED PCB -> ✓ get, make, install
 UV Enclosure
 
 Realign optics with DLP (redesign the flange mount)

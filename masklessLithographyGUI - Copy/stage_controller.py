@@ -140,7 +140,7 @@ class StageController(QWidget):
         self.btn_x_minus.clicked.connect(lambda: self.move_axis('X', '-'))
         xy_layout.addWidget(self.btn_x_minus, 1, 0)
         
-        self.btn_stop = QPushButton("⚠ STOP")
+        self.btn_stop = QPushButton("⚠ STOP \nMOTORS")
         self.btn_stop.setMinimumSize(80, 50)
         self.btn_stop.setStyleSheet("background-color: #d32f2f; color: white; font-weight: bold; font-size: 14px;")
         self.btn_stop.clicked.connect(self.emergency_stop)
