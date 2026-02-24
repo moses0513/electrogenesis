@@ -194,7 +194,7 @@ class StageController(QWidget):
         home_layout.addWidget(self.btn_home_z, 0, 2)
         
         self.btn_home_all = QPushButton("Home All Axes")
-        self.btn_home_all.setStyleSheet("background-color: #1976d2; color: white; font-weight: bold;")
+        self.btn_home_all.setStyleSheet("background-color: #1976d2; color: white;")
         self.btn_home_all.clicked.connect(self.home_all_axes)
         home_layout.addWidget(self.btn_home_all, 1, 0, 1, 3)
         

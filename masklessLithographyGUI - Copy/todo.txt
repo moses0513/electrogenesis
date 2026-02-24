@@ -11,3 +11,4 @@ Add path configurations for stepper motors to follow (e.g. the "draw a circle" f
     -> Make a separate tab for this, switch between "Path" and "Image" tabs (Sliders replaced with path configuration)
 ✓ Grayscale Option
 Diagnose "scan line" problem
+Add safety shutoff for ENABLE pin on all 3 stepper motor drivers (would be toggling one pin upon STOP in gantry control)
