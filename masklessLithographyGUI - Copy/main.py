@@ -139,11 +139,11 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.DLP_preview_scene = QGraphicsScene()
         self.DLP_preview_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0))) # Complete blackout background
         self.DLP_preview_scene.setSceneRect(0, 0, config.LITHO_SIZE_PX_X//4, config.LITHO_SIZE_PX_Y//4)
-        self.photo_and_align_graphics_item = image_processing.add_images(
+        self.graphics_item = image_processing.add_images(
             os.path.join(current_dir, config.PHOTO_FILE), 
             os.path.join(current_dir, config.ALIGNMENT_FILE)
         ) # Return a combined RGB image from photo and align layers
-        self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
+        self.DLP_preview_scene.addItem(self.graphics_item)
         self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
         self.DLP_preview_view.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         # self.DLP_preview_view.heightForWidth(config.LITHO_SIZE_PX_Y//config.LITHO_SIZE_PX_X*300)
@@ -166,9 +166,9 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_spinbox.setDecimals(2)
 
         # Exposure start/stop buttons
-        self.exposure_STOP = QPushButton("STOP")
+        self.exposure_STOP = QPushButton("STOP\nEXPOSURE")
         self.exposure_STOP.setStyleSheet("background-color: red; color: white; font-weight: bold;")
-        self.exposure_START = QPushButton("START")
+        self.exposure_START = QPushButton("START\nEXPOSURE")
         self.exposure_START.setStyleSheet("background-color: green; color: white; font-weight: bold;")
 
         # Alignment PNG layer
@@ -273,10 +273,10 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_START.clicked.connect(self.confirmStart)
         self.exposure_STOP.clicked.connect(self.stopPhotolithography)
         # Optional checkboxes
-        self.alignment_draw_checkbox.stateChanged.connect(self.update_images)
+        self.alignment_draw_checkbox.stateChanged.connect(self.show_alignment_image)
         
 
-    # Moses is working on this one, it blows up right now...
+    # This blows up right now...
     def keyPressEvent(self, event):
         key = event.key()
 
@@ -327,10 +327,17 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
             
 
         # Remove the old pixmap item, add a newly calculated one
-        self.DLP_preview_scene.removeItem(self.photo_and_align_graphics_item)
-        self.photo_and_align_graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE)
-        self.DLP_preview_scene.addItem(self.photo_and_align_graphics_item)
+        self.DLP_preview_scene.removeItem(self.graphics_item)
+        self.graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE)
+        self.DLP_preview_scene.addItem(self.graphics_item)
         
+    def show_alignment_image(self):
+        if DLP.connected:
+            if self.alignment_draw_checkbox.isChecked():
+                lithoWindow.align_graphics_item = image_processing.align_image(config.ALIGNMENT_FILE)
+                lithoWindow.DLP_scene.addItem(lithoWindow.align_graphics_item)
+            else:
+                lithoWindow.DLP_scene.removeItem(lithoWindow.align_graphics_item)
         
     
     def confirmStart(self):
@@ -373,9 +380,11 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         print("STARTING UV EXPOSURE...")
         
         # Add the image to be exposed
-        lithoWindow.DLP_scene.removeItem(lithoWindow.photo_and_align_graphics_item)
-        lithoWindow.photo_and_align_graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE)
-        lithoWindow.DLP_scene.addItem(lithoWindow.photo_and_align_graphics_item)
+        lithoWindow.DLP_scene.removeItem(lithoWindow.graphics_item)
+        lithoWindow.graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE)
+        lithoWindow.DLP_scene.addItem(lithoWindow.graphics_item)
+        lithoWindow.DLP_view = QGraphicsView(lithoWindow.DLP_scene, self)
+        lithoWindow.setCentralWidget(lithoWindow.DLP_view)
 
         self.exposingThread = timedExposureThread(self.exposure_spinbox.value())
         self.exposingThread.endLitho.connect(self.stopPhotolithography)
@@ -429,14 +438,20 @@ class LithoWindow(QMainWindow): # Create the window that the DLP will receieve
                     print(f"\tWidth: {config.LITHO_SIZE_PX_X} px")
                     print(f"\tHeight: {config.LITHO_SIZE_PX_Y} px")
 
+                # DLP Lithography scene
                 self.DLP_scene = QGraphicsScene()
-                self.photo_and_align_graphics_item = image_processing.align_image(config.ALIGNMENT_FILE)
-                self.DLP_scene.addItem(self.photo_and_align_graphics_item)
+                self.DLP_scene.setBackgroundBrush(QBrush(QColor(0, 0, 0)))
+                self.graphics_item = image_processing.align_image(config.ALIGNMENT_FILE)
+                self.DLP_scene.addItem(self.graphics_item)
                 self.DLP_view = QGraphicsView(self.DLP_scene, self)
                 self.DLP_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 self.DLP_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 self.DLP_view.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
                 self.setCentralWidget(self.DLP_view)
+
+                # Create an graphics item solely for alignment
+                self.align_graphics_item = image_processing.align_image(config.ALIGNMENT_FILE)
+
             except Exception as e:
                 print(e)
         
