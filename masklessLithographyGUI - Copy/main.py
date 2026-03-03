@@ -31,7 +31,7 @@ _ Prevent dragging window into DLP or moving mouse onto it... Might get really t
 
 """
 
-import sys, os, time
+import sys, os, time, threading
 import config, image_processing, camera, stage_controller
 import gantryControl as gantry
 from PyQt6.QtWidgets import (
@@ -54,15 +54,15 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSpacerItem,
     QMessageBox,
-    QSizePolicy
+    QSizePolicy,
+    QPlainTextEdit
 )
 # from PyQt6.QtSvgWidgets import QGraphicsSvgItem
-from PyQt6.QtCore import Qt, QSize, QRectF, QThread, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QResizeEvent, QBrush, QColor
+from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, pyqtSlot, QObject
+from PyQt6.QtGui import QResizeEvent, QBrush, QColor, QShortcut, QKeySequence, QTextCursor
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 png_images = os.listdir(os.path.join(current_dir, "png_images"))
-screens = QApplication.screens()
 
 class GraphicsView(QGraphicsView):
     def __init__(self, scene, parent):
@@ -70,7 +70,7 @@ class GraphicsView(QGraphicsView):
         # Fixed aspect ratio for the viewport
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         sizePolicy.setHeightForWidth(True)
-        self.setSizePolicy = sizePolicy
+        self.setSizePolicy(sizePolicy)
 
         noScroll = Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         self.setVerticalScrollBarPolicy(noScroll)
@@ -78,22 +78,52 @@ class GraphicsView(QGraphicsView):
         
         
     def sizeHint(self):
-        return QSize(400, 600)
+        return QSize(640, 360)
         # return QSize(int(DLP.width//2.5), int(DLP.height//2.5))
     def heightForWidth(self, width):
-        return width * 1.5
+        return (width * 9) // 16
     def resizeEvent(self, event: QResizeEvent):
         super(GraphicsView, self).resizeEvent(event)
-        self.windowRect = QRectF(0, 0, DLP.width, DLP.height)
-        self.fitInView(self.windowRect, Qt.AspectRatioMode.KeepAspectRatio)
+        self.fit_preview()
 
-    
+    def fit_preview(self):
+        scene = self.scene()
+        if scene is None:
+            return
+        bounds = scene.itemsBoundingRect()
+        if bounds.isNull() or not bounds.isValid():
+            bounds = scene.sceneRect()
+        scene.setSceneRect(bounds)
+        self.fitInView(bounds, Qt.AspectRatioMode.KeepAspectRatio)
+
+class StdoutTee(QObject):
+    text_written = pyqtSignal(str)
+
+    def __init__(self, original_stream):
+        super().__init__()
+        self.original_stream = original_stream
+
+    def write(self, text):
+        if self.original_stream is not None:
+            self.original_stream.write(text)
+            self.original_stream.flush()
+        if text:
+            self.text_written.emit(text)
+
+    def flush(self):
+        if self.original_stream is not None:
+            self.original_stream.flush()
+
 
 class MainWindow(QMainWindow): # Main GUI for controlling photolithography settings and image
     @pyqtSlot(QThread) # Designate this as a slot for threading
     def __init__(self):
         super().__init__()
         self.setWindowTitle("EGEN Photolithography Settings")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        # Mirror the non-blocking / per-axis guard behavior from motorContoller.py.
+        self.axis_busy = {"X": False, "Y": False, "Z": False}
         
         # Style and positioning
         QApplication.setStyle("Fusion") 
@@ -121,9 +151,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Camera feed and stage controller
         self.camera_label = QLabel("Live Camera Footage")
         self.camFeed = camera.CameraFeed()
-        self.camFeed.setFixedSize(640, 480)
-
-        self.layout_left.addWidget(self.camFeed)
+        self.camFeed.setFixedSize(640, 360)
 
         # MIDDLE
         # Stage controller for the stepper motors and magnetic encoders
@@ -146,11 +174,18 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.DLP_preview_scene.addItem(self.graphics_item)
         self.DLP_preview_view = GraphicsView(self.DLP_preview_scene, self)
         self.DLP_preview_view.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.DLP_preview_view.setFixedSize(640, 360)
+        self.DLP_preview_view.fit_preview()
         # self.DLP_preview_view.heightForWidth(config.LITHO_SIZE_PX_Y//config.LITHO_SIZE_PX_X*300)
         # self.DLP_preview_view.setFixedSize(640, 640)
         # self.DLP_preview_view.scale(3, 3)
         # self.DLP_preview_view.fitInView(self.DLP_preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatioByExpanding)
-        
+
+        # Left column (top-to-bottom): lithography preview + camera feed
+        self.layout_left.addWidget(self.preview_text_title)
+        self.layout_left.addWidget(self.DLP_preview_view)
+        self.layout_left.addWidget(self.camera_label)
+        self.layout_left.addWidget(self.camFeed)
 
         # Output resolution:
         self.resolution_label = QLabel(f"Output resolution: {DLP.width} x {DLP.height}")
@@ -175,9 +210,24 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.alignment_draw_checkbox = QCheckBox("Draw alignment image on wafer")
         self.alignment_draw_checkbox.setChecked(True)        
 
-        # Add widgets to RIGHT layout
-        self.layout_right.addWidget(self.preview_text_title)
-        self.layout_right.addWidget(self.DLP_preview_view)
+        # Console mirror in the old preview area on the right
+        self.console_title = QLabel("Console Output")
+        QLabel.setAlignment(self.console_title, Qt.AlignmentFlag.AlignCenter)
+        self.console_view = QPlainTextEdit()
+        self.console_view.setReadOnly(True)
+        self.console_view.setMaximumBlockCount(2000)
+        self.layout_right.addWidget(self.console_title)
+        self.layout_right.addWidget(self.console_view)
+
+        # Mirror terminal stdout/stderr into right-side console without suppressing terminal output
+        self.stdout_tee = StdoutTee(sys.stdout)
+        self.stderr_tee = StdoutTee(sys.stderr)
+        self.stdout_tee.text_written.connect(self._append_console_text)
+        self.stderr_tee.text_written.connect(self._append_console_text)
+        sys.stdout = self.stdout_tee
+        sys.stderr = self.stderr_tee
+
+        # Add exposure and output widgets to RIGHT layout
         self.layout_right.addWidget(self.resolution_label)
         self.layout_exposure.addWidget(self.exposure_label)
         self.layout_exposure.addWidget(self.exposure_spinbox)
@@ -274,24 +324,93 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_STOP.clicked.connect(self.stopPhotolithography)
         # Optional checkboxes
         self.alignment_draw_checkbox.stateChanged.connect(self.show_alignment_image)
-        
+        self.setup_stage_motor_controls()
+        self.setup_keyboard_shortcuts()
+
+    @pyqtSlot(str)
+    def _append_console_text(self, text):
+        self.console_view.moveCursor(QTextCursor.MoveOperation.End)
+        self.console_view.insertPlainText(text)
+        self.console_view.moveCursor(QTextCursor.MoveOperation.End)
+
+    def setup_stage_motor_controls(self):
+        # Re-route stage widget motion controls through the same command path used by keyboard.
+        self.stage_controller.btn_x_minus.clicked.disconnect()
+        self.stage_controller.btn_x_minus.clicked.connect(lambda: self.move_axis_threaded("X", "-", self.stage_controller.xy_step_size))
+        self.stage_controller.btn_x_plus.clicked.disconnect()
+        self.stage_controller.btn_x_plus.clicked.connect(lambda: self.move_axis_threaded("X", "+", self.stage_controller.xy_step_size))
+        self.stage_controller.btn_y_minus.clicked.disconnect()
+        self.stage_controller.btn_y_minus.clicked.connect(lambda: self.move_axis_threaded("Y", "-", self.stage_controller.xy_step_size))
+        self.stage_controller.btn_y_plus.clicked.disconnect()
+        self.stage_controller.btn_y_plus.clicked.connect(lambda: self.move_axis_threaded("Y", "+", self.stage_controller.xy_step_size))
+        self.stage_controller.btn_z_minus.clicked.disconnect()
+        self.stage_controller.btn_z_minus.clicked.connect(lambda: self.move_axis_threaded("Z", "-", self.stage_controller.z_step_size))
+        self.stage_controller.btn_z_plus.clicked.disconnect()
+        self.stage_controller.btn_z_plus.clicked.connect(lambda: self.move_axis_threaded("Z", "+", self.stage_controller.z_step_size))
+        self.stage_controller.btn_stop.clicked.disconnect()
+        self.stage_controller.btn_stop.clicked.connect(self.stop_motors)
+
+    def setup_keyboard_shortcuts(self):
+        # QShortcut captures keys consistently, even when child widgets have focus.
+        self.shortcut_up = QShortcut(QKeySequence(Qt.Key.Key_Up), self)
+        self.shortcut_down = QShortcut(QKeySequence(Qt.Key.Key_Down), self)
+        self.shortcut_left = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
+        self.shortcut_right = QShortcut(QKeySequence(Qt.Key.Key_Right), self)
+        self.shortcut_page_up = QShortcut(QKeySequence(Qt.Key.Key_PageUp), self)
+        self.shortcut_page_down = QShortcut(QKeySequence(Qt.Key.Key_PageDown), self)
+
+        self.shortcut_up.activated.connect(lambda: self.move_axis_threaded("Y", "+", self.stage_controller.xy_step_size))
+        self.shortcut_down.activated.connect(lambda: self.move_axis_threaded("Y", "-", self.stage_controller.xy_step_size))
+        self.shortcut_left.activated.connect(lambda: self.move_axis_threaded("X", "-", self.stage_controller.xy_step_size))
+        self.shortcut_right.activated.connect(lambda: self.move_axis_threaded("X", "+", self.stage_controller.xy_step_size))
+        self.shortcut_page_up.activated.connect(lambda: self.move_axis_threaded("Z", "+", self.stage_controller.z_step_size))
+        self.shortcut_page_down.activated.connect(lambda: self.move_axis_threaded("Z", "-", self.stage_controller.z_step_size))
+
+    def move_axis_threaded(self, axis, direction, steps):
+        if steps <= 0 or self.axis_busy.get(axis, False):
+            return
+        self.axis_busy[axis] = True
+
+        # Keep stage position labels in sync with requested motion.
+        step_delta = steps if direction == "+" else -steps
+        if axis == "X":
+            self.stage_controller.position_x += step_delta
+        elif axis == "Y":
+            self.stage_controller.position_y += step_delta
+        elif axis == "Z":
+            self.stage_controller.position_z += step_delta
+        self.stage_controller.update_position_display()
+
+        worker = threading.Thread(
+            target=self._execute_motor_command, args=(axis, direction, steps), daemon=True
+        )
+        worker.start()
+
+    def _execute_motor_command(self, axis, direction, steps):
+        try:
+            gantry.moveMOTOR(f"{axis}{direction}{steps}")
+        finally:
+            self.axis_busy[axis] = False
+
+    def stop_motors(self):
+        gantry.moveMOTOR("STOP")
 
     # This blows up right now...
     def keyPressEvent(self, event):
         key = event.key()
 
-        if key == Qt.Key_Up:
-            gantry.moveMOTOR("Y+100")
-        elif key == Qt.Key_Down:
-            gantry.moveMOTOR("Y-100")
-        elif key == Qt.Key_Left:
-            gantry.moveMOTOR("X-100")
-        elif key == Qt.Key_Right:
-            gantry.moveMOTOR("X+100")
-        elif key == Qt.Key_PageUp:
-            gantry.moveMOTOR("Z+50")
-        elif key == Qt.Key_PageDown:
-            gantry.moveMOTOR("Z-50")
+        if key == Qt.Key.Key_Up:
+            self.move_axis_threaded("Y", "+", self.stage_controller.xy_step_size)
+        elif key == Qt.Key.Key_Down:
+            self.move_axis_threaded("Y", "-", self.stage_controller.xy_step_size)
+        elif key == Qt.Key.Key_Left:
+            self.move_axis_threaded("X", "-", self.stage_controller.xy_step_size)
+        elif key == Qt.Key.Key_Right:
+            self.move_axis_threaded("X", "+", self.stage_controller.xy_step_size)
+        elif key == Qt.Key.Key_PageUp:
+            self.move_axis_threaded("Z", "+", self.stage_controller.z_step_size)
+        elif key == Qt.Key.Key_PageDown:
+            self.move_axis_threaded("Z", "-", self.stage_controller.z_step_size)
         else:
             super().keyPressEvent(event)
 
@@ -320,8 +439,9 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
             selected_file = self.assist_cbox.currentText()
             config.ALIGNMENT_FILE = os.path.join("png_images", selected_file)
             self.assist_text_file.setText(f'Image File: {config.ALIGNMENT_FILE}')# Add the align image to the actual DLP_scene so we see it on the camera
-            lithoWindow.align_graphics_item = image_processing.align_image(config.ALIGNMENT_FILE)
-            lithoWindow.DLP_scene.addItem(lithoWindow.align_graphics_item)
+            if DLP.connected and hasattr(lithoWindow, "DLP_scene"):
+                lithoWindow.align_graphics_item = image_processing.align_image(config.ALIGNMENT_FILE)
+                lithoWindow.DLP_scene.addItem(lithoWindow.align_graphics_item)
         else:
             config.ALIGNMENT_FILE = None
             
@@ -330,9 +450,10 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.DLP_preview_scene.removeItem(self.graphics_item)
         self.graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE)
         self.DLP_preview_scene.addItem(self.graphics_item)
+        self.DLP_preview_view.fit_preview()
         
     def show_alignment_image(self):
-        if DLP.connected:
+        if DLP.connected and hasattr(lithoWindow, "DLP_scene"):
             if self.alignment_draw_checkbox.isChecked():
                 lithoWindow.align_graphics_item = image_processing.align_image(config.ALIGNMENT_FILE)
                 lithoWindow.DLP_scene.addItem(lithoWindow.align_graphics_item)
@@ -372,11 +493,20 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         super().resizeEvent(event)
 
     def closeEvent(self, a0):
+        # Restore original streams before exiting.
+        if hasattr(self, "stdout_tee"):
+            sys.stdout = self.stdout_tee.original_stream
+        if hasattr(self, "stderr_tee"):
+            sys.stderr = self.stderr_tee.original_stream
         exit() # Close the whole program if the main window is closed.
         # NOTE: The default splash of the DLP MUST be a black screen, or something with NO blue.
         #       Otherwise, it will emit UV light when the on-board splash screen (aka "No-signal" screen) takes over.
 
     def startPhotolithography(self):
+        if not DLP.connected or not hasattr(lithoWindow, "DLP_scene"):
+            print("Cannot start photolithography: no second display connected.")
+            return
+
         print("STARTING UV EXPOSURE...")
         
         # Add the image to be exposed
@@ -391,7 +521,8 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposingThread.start()
 
     def stopPhotolithography(self):           
-        lithoWindow.blackout()
+        if DLP.connected:
+            lithoWindow.blackout()
         print("STOPPED UV EXPOSURE.")
 
 class timedExposureThread(QThread):
@@ -418,6 +549,9 @@ class DLP():
             self.height = 0
             print("No second display detected. Running GUI only.")
         except Exception as e:
+            self.connected = False
+            self.width = 0
+            self.height = 0
             print(e)
 
 class LithoWindow(QMainWindow): # Create the window that the DLP will receieve

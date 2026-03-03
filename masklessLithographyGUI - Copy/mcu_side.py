@@ -16,21 +16,22 @@ except ImportError:
 # CHANGE THESE TO MATCH WIRING
 # -----------------------------
 AXES = {
-    'X': {'STEP': 17, 'DIR': 16},
-    'Y': {'STEP': 27, 'DIR': 26},
-    'Z': {'STEP': 22, 'DIR': 21},
+    'X': {'STEP': 23, 'DIR': 24},
+    'Y': {'STEP': 5, 'DIR': 6},
+    'Z': {'STEP': 13, 'DIR': 19},
 }
 
-STEP_DELAY = 0.0005  # seconds
+STEP_DELAY = 0.0007  # seconds (match motorContoller.py pulse timing)
 
 # -----------------------------
 # GPIO SETUP (Pi only)
 # -----------------------------
 if ON_PI:
     GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
     for axis in AXES.values():
-        GPIO.setup(axis['STEP'], GPIO.OUT)
-        GPIO.setup(axis['DIR'], GPIO.OUT)
+        GPIO.setup(axis['STEP'], GPIO.OUT, initial=GPIO.LOW)
+        GPIO.setup(axis['DIR'], GPIO.OUT, initial=GPIO.LOW)
 
 # -----------------------------
 # MOTOR CONTROL
