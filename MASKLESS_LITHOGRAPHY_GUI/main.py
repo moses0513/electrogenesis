@@ -128,9 +128,11 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Style and positioning
         QApplication.setStyle("Fusion") 
         try:
-            with open("style.css", "r") as f:
+            with open("style.qss", "r") as f:
                 style = f.read()
                 self.setStyleSheet(style)
+                if style:
+                    print("style.css loaded.")
         except Exception as e:
             print("You're out of style :(")
             print(e)

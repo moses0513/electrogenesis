@@ -1,0 +1,49 @@
+:root {
+    --bg: #080b0f;
+    --s1: #0d1117;
+    --s2: #131920;
+    --s3: #1a2230;
+    --s4: #1f2a3c;
+    --cyan: #00d4ff;
+    --cyan2: #0099bb;
+    --cyan3: #005566;
+    --violet: #a78bfa;
+    --violet2: #6d4fd4;
+    --amber: #f59e0b;
+    --green: #10b981;
+    --red: #f43f5e;
+    --t1: #cdd6f4;
+    --t2: #7f8ab0;
+    --t3: #3d4868;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --br: 6px;
+}
+
+QWidget {
+    background-color: #8b0303;
+}
+
+QLabel {
+    background-color: #262626;
+    font: bold 16px;
+    /* font-family: Titillium; */
+}
+
+QGroupBox {
+    border: 1px solid var(--t3);
+    border-radius: 10px;
+    margin-top: 10px;
+}
+/* QButton {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+} */
