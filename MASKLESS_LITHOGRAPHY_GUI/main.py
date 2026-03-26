@@ -128,7 +128,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         # Style and positioning
         QApplication.setStyle("Fusion") 
         try:
-            with open("style.qss", "r") as f:
+            with open("style.css", "r") as f:
                 style = f.read()
                 self.setStyleSheet(style)
                 if style:
@@ -206,7 +206,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_STOP = QPushButton("STOP\nEXPOSURE")
         self.exposure_STOP.setStyleSheet("background-color: red; color: white; font-weight: bold;")
         self.exposure_START = QPushButton("START\nEXPOSURE")
-        self.exposure_START.setStyleSheet("background-color: green; color: white; font-weight: bold;")
+        self.exposure_START.setStyleSheet("background-color: green; #10b981: white; font-weight: bold;")
 
         # Alignment PNG layer
         self.alignment_draw_checkbox = QCheckBox("Draw alignment image on wafer")
@@ -218,8 +218,6 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.console_view = QPlainTextEdit()
         self.console_view.setReadOnly(True)
         self.console_view.setMaximumBlockCount(2000)
-        self.layout_right.addWidget(self.console_title)
-        self.layout_right.addWidget(self.console_view)
 
         # Mirror terminal stdout/stderr into right-side console without suppressing terminal output
         self.stdout_tee = StdoutTee(sys.stdout)
@@ -282,7 +280,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         # Add Photolithography widgets to layout
         self.layout_right.addWidget(self.photo_text_title)
-        self.layout_right.addSpacerItem(self.spacer)
+        # self.layout_right.addSpacerItem(self.spacer)
         self.layout_right.addWidget(self.photo_text_file)
         self.layout_right.addWidget(self.photo_cbox)
         self.layout_right.addWidget(self.photo_text_UV)
@@ -296,11 +294,14 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_right.addWidget(self.assist_slider_GREEN)
         self.layout_right.addSpacerItem(self.spacer)
 
+        self.layout_right.addWidget(self.console_title)
+        self.layout_right.addWidget(self.console_view)
+
         
 
         # Add the three main sections to the top-level layout
-        self.layout_top.addLayout(self.layout_left)
         self.layout_top.addLayout(self.layout_middle)
+        self.layout_top.addLayout(self.layout_left)
         self.layout_top.addLayout(self.layout_right)
         # self.layout_top.insertSpacerItem(1, QSizePolicy.Expanding)
 

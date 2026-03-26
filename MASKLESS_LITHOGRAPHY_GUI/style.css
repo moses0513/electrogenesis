@@ -1,4 +1,8 @@
-:root {
+/*With HTML, you can use var(--bg) wherever
+you need that color. Unfortunately, I could
+not find a way to do this using Qt6 :( */
+
+/* :root {
     --bg: #080b0f;
     --s1: #0d1117;
     --s2: #131920;
@@ -18,32 +22,45 @@
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'IBM Plex Sans', sans-serif;
     --br: 6px;
-}
+} */
 
 QWidget {
-    background-color: #8b0303;
+    background-color: #080b0f;
+    color: #cdd6f4;
+    font: 16px;
 }
 
 QLabel {
-    background-color: #262626;
-    font: bold 16px;
+    color: #cdd6f4;
+    font: 16px;
     /* font-family: Titillium; */
 }
 
 QGroupBox {
-    border: 1px solid var(--t3);
+    border: 1px solid #3d4868;
     border-radius: 10px;
     margin-top: 10px;
 }
-/* QButton {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 10px 20px;
+
+QPushButton {
+    background-color: #131920;
+    color: #cdd6f4;
+    border: 1px solid #1a2230;
+    border-radius: 10px;
+    padding: 5px 5px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
     font-size: 16px;
     margin: 4px 2px;
     cursor: pointer;
-} */
+}
+
+QPlainTextEdit { /*Console*/
+    background-color: #000000;
+    color: #10b981;
+    border: 1px solid #1a2230;
+    border-radius: 10px;
+    padding: 5px;
+    font-family: 'Monospace', monospace;
+}
