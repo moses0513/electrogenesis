@@ -28,8 +28,8 @@ class StageController(QWidget):
         self.position_z = 0
         
         # Step sizes
-        self.xy_step_size = 100
-        self.z_step_size = 50
+        self.xy_step_size = 10
+        self.z_step_size = 5
         
         self.setup_ui()
         
