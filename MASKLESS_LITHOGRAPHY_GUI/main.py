@@ -514,7 +514,8 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         print("STARTING UV EXPOSURE...")
         
         # Add the image to be exposed
-        lithoWindow.DLP_scene.removeItem(lithoWindow.graphics_item)
+        # lithoWindow.DLP_scene.removeItem(lithoWindow.graphics_item)
+        lithoWindow.DLP_scene.clear()
         lithoWindow.graphics_item = image_processing.add_images(config.PHOTO_FILE, config.ALIGNMENT_FILE)
         lithoWindow.DLP_scene.addItem(lithoWindow.graphics_item)
         lithoWindow.DLP_view = QGraphicsView(lithoWindow.DLP_scene, self)
