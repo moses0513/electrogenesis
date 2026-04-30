@@ -131,6 +131,8 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
             with open("style.css", "r") as f:
                 style = f.read()
                 self.setStyleSheet(style)
+                if style:
+                    print("style.css loaded.")
         except Exception as e:
             print("You're out of style :(")
             print(e)
@@ -204,7 +206,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.exposure_STOP = QPushButton("STOP\nEXPOSURE")
         self.exposure_STOP.setStyleSheet("background-color: red; color: white; font-weight: bold;")
         self.exposure_START = QPushButton("START\nEXPOSURE")
-        self.exposure_START.setStyleSheet("background-color: green; color: white; font-weight: bold;")
+        self.exposure_START.setStyleSheet("background-color: #10b981; color: white; font-weight: bold;")
 
         # Alignment PNG layer
         self.alignment_draw_checkbox = QCheckBox("Draw alignment image on wafer")
@@ -216,8 +218,6 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.console_view = QPlainTextEdit()
         self.console_view.setReadOnly(True)
         self.console_view.setMaximumBlockCount(2000)
-        self.layout_right.addWidget(self.console_title)
-        self.layout_right.addWidget(self.console_view)
 
         # Mirror terminal stdout/stderr into right-side console without suppressing terminal output
         self.stdout_tee = StdoutTee(sys.stdout)
@@ -280,7 +280,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         # Add Photolithography widgets to layout
         self.layout_right.addWidget(self.photo_text_title)
-        self.layout_right.addSpacerItem(self.spacer)
+        # self.layout_right.addSpacerItem(self.spacer)
         self.layout_right.addWidget(self.photo_text_file)
         self.layout_right.addWidget(self.photo_cbox)
         self.layout_right.addWidget(self.photo_text_UV)
@@ -294,11 +294,14 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         self.layout_right.addWidget(self.assist_slider_GREEN)
         self.layout_right.addSpacerItem(self.spacer)
 
+        self.layout_right.addWidget(self.console_title)
+        self.layout_right.addWidget(self.console_view)
+
         
 
         # Add the three main sections to the top-level layout
-        self.layout_top.addLayout(self.layout_left)
         self.layout_top.addLayout(self.layout_middle)
+        self.layout_top.addLayout(self.layout_left)
         self.layout_top.addLayout(self.layout_right)
         # self.layout_top.insertSpacerItem(1, QSizePolicy.Expanding)
 
@@ -335,18 +338,19 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
     def setup_stage_motor_controls(self):
         # Re-route stage widget motion controls through the same command path used by keyboard.
+        # Inverted all signs
         self.stage_controller.btn_x_minus.clicked.disconnect()
-        self.stage_controller.btn_x_minus.clicked.connect(lambda: self.move_axis_threaded("X", "-", self.stage_controller.xy_step_size))
+        self.stage_controller.btn_x_minus.clicked.connect(lambda: self.move_axis_threaded("X", "+", self.stage_controller.xy_step_size))
         self.stage_controller.btn_x_plus.clicked.disconnect()
-        self.stage_controller.btn_x_plus.clicked.connect(lambda: self.move_axis_threaded("X", "+", self.stage_controller.xy_step_size))
+        self.stage_controller.btn_x_plus.clicked.connect(lambda: self.move_axis_threaded("X", "-", self.stage_controller.xy_step_size))
         self.stage_controller.btn_y_minus.clicked.disconnect()
-        self.stage_controller.btn_y_minus.clicked.connect(lambda: self.move_axis_threaded("Y", "-", self.stage_controller.xy_step_size))
+        self.stage_controller.btn_y_minus.clicked.connect(lambda: self.move_axis_threaded("Y", "+", self.stage_controller.xy_step_size))
         self.stage_controller.btn_y_plus.clicked.disconnect()
-        self.stage_controller.btn_y_plus.clicked.connect(lambda: self.move_axis_threaded("Y", "+", self.stage_controller.xy_step_size))
+        self.stage_controller.btn_y_plus.clicked.connect(lambda: self.move_axis_threaded("Y", "-", self.stage_controller.xy_step_size))
         self.stage_controller.btn_z_minus.clicked.disconnect()
-        self.stage_controller.btn_z_minus.clicked.connect(lambda: self.move_axis_threaded("Z", "-", self.stage_controller.z_step_size))
+        self.stage_controller.btn_z_minus.clicked.connect(lambda: self.move_axis_threaded("Z", "+", self.stage_controller.z_step_size))
         self.stage_controller.btn_z_plus.clicked.disconnect()
-        self.stage_controller.btn_z_plus.clicked.connect(lambda: self.move_axis_threaded("Z", "+", self.stage_controller.z_step_size))
+        self.stage_controller.btn_z_plus.clicked.connect(lambda: self.move_axis_threaded("Z", "-", self.stage_controller.z_step_size))
         self.stage_controller.btn_stop.clicked.disconnect()
         self.stage_controller.btn_stop.clicked.connect(self.stop_motors)
 
@@ -396,23 +400,23 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
         gantry.moveMOTOR("STOP")
 
     # This blows up right now...
-    def keyPressEvent(self, event):
-        key = event.key()
+    # def keyPressEvent(self, event):
+    #     key = event.key()
 
-        if key == Qt.Key.Key_Up:
-            self.move_axis_threaded("Y", "+", self.stage_controller.xy_step_size)
-        elif key == Qt.Key.Key_Down:
-            self.move_axis_threaded("Y", "-", self.stage_controller.xy_step_size)
-        elif key == Qt.Key.Key_Left:
-            self.move_axis_threaded("X", "-", self.stage_controller.xy_step_size)
-        elif key == Qt.Key.Key_Right:
-            self.move_axis_threaded("X", "+", self.stage_controller.xy_step_size)
-        elif key == Qt.Key.Key_PageUp:
-            self.move_axis_threaded("Z", "+", self.stage_controller.z_step_size)
-        elif key == Qt.Key.Key_PageDown:
-            self.move_axis_threaded("Z", "-", self.stage_controller.z_step_size)
-        else:
-            super().keyPressEvent(event)
+    #     if key == Qt.Key.Key_Up:
+    #         self.move_axis_threaded("Y", "+", self.stage_controller.xy_step_size)
+    #     elif key == Qt.Key.Key_Down:
+    #         self.move_axis_threaded("Y", "-", self.stage_controller.xy_step_size)
+    #     elif key == Qt.Key.Key_Left:
+    #         self.move_axis_threaded("X", "-", self.stage_controller.xy_step_size)
+    #     elif key == Qt.Key.Key_Right:
+    #         self.move_axis_threaded("X", "+", self.stage_controller.xy_step_size)
+    #     elif key == Qt.Key.Key_PageUp:
+    #         self.move_axis_threaded("Z", "+", self.stage_controller.z_step_size)
+    #     elif key == Qt.Key.Key_PageDown:
+    #         self.move_axis_threaded("Z", "-", self.stage_controller.z_step_size)
+    #     else:
+    #         super().keyPressEvent(event)
 
     def update_UV_value(self):
         value = self.photo_slider_UV.value()
