@@ -492,6 +492,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
             self.startPhotolithography()
         if button == cancelButton:
             print("Canceled Photolithography.")
+            # warning.close()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
