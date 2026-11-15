@@ -197,7 +197,7 @@ class MainWindow(QMainWindow): # Main GUI for controlling photolithography setti
 
         # Exposure time spinbox
         self.exposure_spinbox = QDoubleSpinBox()
-        self.exposure_spinbox.setRange(0, 30)
+        self.exposure_spinbox.setRange(0, 1800)
         self.exposure_spinbox.setValue(config.EXPOSURE_TIME)
         self.exposure_spinbox.suffix = " sec"
         self.exposure_spinbox.setDecimals(2)
